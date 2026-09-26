@@ -107,14 +107,14 @@
 
 ### 7. 代码层面已知小尾巴
 
-- [ ] **模块路径大小写**：`github.com/chilfish/NCMconverter` 含大写 `NCMconverter`，不符合 Go 的路径小写惯例。改动会破坏既有 `go install` 路径，需先决定是否另发一轮并做重定向说明。
-- [ ] **容器 CRC32 未校验**：`internal/ncm/ncm.go` 中 meta 段后的 CRC32 被跳过，版本字节 `0x01` 也未校验。校验它们可以在文件损坏时给出更明确的错误。
-- [ ] **`reserved` 字段语义未证实**：布局中 `metaEnd+5` 处 4 字节实测与 cover 长度相同（见包注释）。若将来格式有变，这里是风险点，值得找更多样本比对。
+- [x] **模块路径大小写**：`github.com/chilfish/NCMconverter` 含大写 `NCMconverter`，不符合 Go 的路径小写惯例。改动会破坏既有 `go install` 路径，需先决定是否另发一轮并做重定向说明。（已改为全小写 `github.com/chilfish/ncmconverter`，提交 ecca91c。因为尚无发布版本，不需要重定向说明。）
+- [x] **容器 CRC32 未校验**：`internal/ncm/ncm.go` 中 meta 段后的 CRC32 被跳过，版本字节 `0x01` 也未校验。校验它们可以在文件损坏时给出更明确的错误。（**实测该字段并不是 meta 段的 CRC32**：真实样本存的是 `0xf372d5d0`，而对存储字节、去混淆文本、解密后明文分别算 `hash/crc32.ChecksumIEEE` 得到 `0x05f35836`、`0x6bbec699`、`0x25b8169a`，都对不上。其定义未知，**故意不校验**，把发现写进了包注释，避免以后按错误假设重新实现。）
+- [ ] **`reserved` 字段语义未证实**：布局中 `metaEnd+5` 处 4 字节实测与 cover 长度相同（见包注释；真实样本上两者同为 224893）。若将来格式有变，这里是风险点，值得找更多样本比对。
 - [ ] **上游库问题**：
   - `go-flac/v2` 的 `ParseFile` 在解析失败时**泄漏文件句柄**（无法从外部关闭），我们已在 `internal/tag/flac/flac.go` 改成自己 `os.Open` + `ParseBytes` 绕开。建议向上游反馈，并保留该注释。
   - `bogem/id3v2` 的 `Save()` 在写入失败时不会关闭 `-id3v2` 临时文件，Windows 上会留下无法删除的残留。我们把标签锁到 ID3v2.4 + UTF-8 后不再触发，但仍是隐患。
 - [ ] **CLI 打磨**：`--dry-run`（只列出将要转换的文件）、`--overwrite`/`--skip-existing`、自定义输出文件名模板、`--quiet`。
-- [ ] **`--depth` 语义变更**属于破坏性变更，首次发版时需要在 `CHANGELOG` 里写清：以前 `--depth 0` 传目录等于什么都不做，现在表示"只处理该目录下的直接子文件"。
+- [x] **`--depth` 语义变更**属于破坏性变更，首次发版时需要在 `CHANGELOG` 里写清：以前 `--depth 0` 传目录等于什么都不做，现在表示"只处理该目录下的直接子文件"。（已写入 `CHANGELOG.md` 的 Unreleased。）
 
 ### 8. 测试 fixture 的版权与体积
 

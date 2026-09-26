@@ -12,7 +12,7 @@
 //	14               keyLen     key section
 //	14+keyLen        4          meta section length
 //	18+keyLen        metaLen    meta section
-//	metaEnd          4          CRC32 of the meta section
+//	metaEnd          4          checksum over the meta section, not validated
 //	metaEnd+4        1          meta section version, always 0x01
 //	metaEnd+5        4          reserved, observed to echo the cover length
 //	metaEnd+9        4          cover section length
@@ -21,6 +21,13 @@
 //
 // The layout above was verified against real containers; the "reserved" field
 // at metaEnd+5 is not read, but the cover length that follows it is.
+//
+// The four bytes at metaEnd are not a CRC32 of the meta section, whatever the
+// format's documentation says. On a real container they read 0xf372d5d0, while
+// hash/crc32.ChecksumIEEE over the stored meta bytes gives 0x05f35836 — and
+// neither the de-obfuscated text nor the decrypted payload matches either. The
+// field's definition is unknown, so it is deliberately left unchecked rather
+// than compared against a value we would be guessing at.
 package ncm
 
 import (
@@ -43,8 +50,8 @@ const (
 	magicHeaderSize   = 8
 	headerPaddingSize = 2
 	lengthFieldSize   = 4
-	// metaTrailingSize covers the CRC32 (4 bytes) and the version byte (1 byte)
-	// that separate the meta section from the cover section.
+	// metaTrailingSize covers the meta checksum (4 bytes) and the version byte
+	// (1 byte) that separate the meta section from the cover section.
 	metaTrailingSize = 5
 	// coverReservedSize covers a field that is not read. The cover length sits
 	// immediately after it, which is why it has to be accounted for.
