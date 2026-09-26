@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -444,4 +445,53 @@ func TestRunEmbedsLargeLyrics(t *testing.T) {
 			t.Error("the embedded lyrics differ from the sidecar")
 		}
 	})
+}
+
+// TestRunLeavesNoTemporaryFiles converts in place and checks that the directory
+// holds nothing but the source, its lyrics sidecar and the result, one format
+// per subtest.
+//
+// Tagging rewrites audio through a temporary file, and a library that fails to
+// remove it leaves a leak that a passing conversion would otherwise hide. The
+// sidecar makes the lyrics path run as well.
+func TestRunLeavesNoTemporaryFiles(t *testing.T) {
+	tests := []struct {
+		format string
+		music  []byte
+		ext    string
+	}{
+		{format: "mp3", music: ncmtest.MinimalMP3(frames(4096, 0x7a)), ext: ".mp3"},
+		{format: "flac", music: ncmtest.MinimalFLAC(frames(4096, 0x7b)), ext: ".flac"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.format, func(t *testing.T) {
+			dir := t.TempDir()
+			source := container(t, dir, "song.ncm", ncmtest.Options{
+				Meta:  map[string]any{"format": tt.format, "musicName": "Track"},
+				Cover: ncmtest.JPEG(),
+				Music: tt.music,
+			})
+			writeLyricsSidecar(t, source, "[00:01.000] 歌詞")
+
+			if err := Run(context.Background(), Options{Inputs: []string{source}, Tag: true, Threads: 1}); err != nil {
+				t.Fatalf("run: %v", err)
+			}
+
+			entries, err := os.ReadDir(dir)
+			if err != nil {
+				t.Fatalf("read output directory: %v", err)
+			}
+			got := make([]string, 0, len(entries))
+			for _, entry := range entries {
+				got = append(got, entry.Name())
+			}
+			want := []string{"song.ncm", "song.lrc", "song" + tt.ext}
+			slices.Sort(got)
+			slices.Sort(want)
+			if !slices.Equal(got, want) {
+				t.Errorf("directory holds %v, want %v", got, want)
+			}
+		})
+	}
 }
