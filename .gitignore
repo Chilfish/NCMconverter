@@ -1,23 +1,30 @@
-NCMConverter*
-NCMconverter*
-*.mp3
-*.ncm
-./temp
-.idea
-.vscode
-# Binaries for programs and plugins
+# Build output
+bin/
+/ncmconverter
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
-*.test
+# Container inputs and converted audio
+*.ncm
+*.mp3
+*.flac
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Test and coverage output
+*.test
 *.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Editors
+.idea
+.vscode
+
+# Local scratch space
+/temp/
+
+# Fixtures used by the end-to-end tests
+!testdata/*
+
+# Local tooling settings
 .commandcode/settings.json
