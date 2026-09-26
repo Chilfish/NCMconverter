@@ -10,14 +10,22 @@ permissions:
 
 jobs:
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing should not hide the result on the others.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Check formatting
+        # gofmt is the same everywhere, so one platform is enough, and the test
+        # idiom below is a POSIX shell one.
+        if: runner.os == 'Linux'
         run: test -z "$(gofmt -l .)"
       - name: Vet
         run: go vet ./...
@@ -25,6 +33,22 @@ jobs:
         run: go test -race ./...
       - name: Build
         run: go build ./...
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Test with coverage
+        run: go test -covermode=atomic -coverprofile=coverage.out ./...
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
 
   lint:
     name: Lint
@@ -36,4 +60,6 @@ jobs:
           go-version-file: go.mod
       - uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          # Pinned so a new release cannot turn a green build red on its own.
+          # Bump it together with the local golangci-lint.
+          version: v2.14.0
