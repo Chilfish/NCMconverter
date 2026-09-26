@@ -95,3 +95,5 @@ changelog:
       - "^build"
       - "^refactor"
       - "^Initial commit"
+      # Any release plumbing, whatever its type.
+      - "\\(release\\)"
