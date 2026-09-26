@@ -94,6 +94,7 @@ make lint          # 需要 golangci-lint v2
 | `internal/converter` | 解密与元数据解码。 |
 | `internal/tag` | 向 mp3 与 flac 写入标签。 |
 | `internal/ncmtest` | 供测试使用的合成容器。 |
+| `docs/` | 项目文档体系，入口见 [`docs/INDEX.md`](docs/INDEX.md)。 |
 
 ## 许可
 

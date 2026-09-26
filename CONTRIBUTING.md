@@ -62,7 +62,7 @@ feat: embed a lyrics sidecar into converted files
 1. 从 `main` 切出分支，命名随意但能看出主题（如 `feat/lyrics`）。
 2. 一个 PR 只做一件事；顺带的重构请拆成单独的 PR。
 3. 提交前本地跑通 `make fmt-check vet test-race`。
-4. PR 描述里按模板填写"做了什么""关联 issue"与检查清单；有用户可见的变化时，同步更新 `README.md`、`docs/` 和 `CHANGELOG.md`。
+4. PR 描述里按模板填写"做了什么""关联 issue"与检查清单；有用户可见的变化时，同步更新 `README.md`、`docs/` 和 `CHANGELOG.md`（文档入口见 [`docs/INDEX.md`](docs/INDEX.md)）。
 
 ## 代码风格
 
