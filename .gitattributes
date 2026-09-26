@@ -1,0 +1,20 @@
+# Normalise line endings on checkout, so a clone on Windows does not rewrite
+# files that were committed with LF.
+* text=auto eol=lf
+
+# Media and containers are not text, whatever their extension suggests.
+*.ncm binary
+*.mp3 binary
+*.flac binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+
+# Lyrics sidecars are plain text, and CRLF in them is harmless, so leave their
+# line endings alone.
+*.lrc text
+
+# Generated files are not worth diffing.
+go.sum -diff

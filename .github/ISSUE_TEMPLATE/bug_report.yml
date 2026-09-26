@@ -1,0 +1,73 @@
+name: Bug 报告
+description: 转换出错、产物异常，或程序崩溃
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量填完整——缺少信息的报告很难复现，往往只能搁置。
+
+        报漏洞请走私密渠道，见 [SECURITY.md](../../SECURITY.md)。
+  - type: input
+    id: version
+    attributes:
+      label: ncmconverter 版本
+      description: 运行 `ncmconverter --version` 的输出，例如 `v0.1.0 (commit abc1234, built ...)`。
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - 其他
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go 版本
+      description: 自行编译时填写 `go version` 的输出；用发布产物可留空。
+    validations:
+      required: false
+  - type: input
+    id: format
+    attributes:
+      label: 容器里的 format
+      description: 日志或元数据中 `format` 字段的值（`mp3`、`flac`，或为空表示容器没有声明）。
+    validations:
+      required: false
+  - type: dropdown
+    id: lyrics
+    attributes:
+      label: 源文件旁边是否有同名的 .lrc
+      options:
+        - "有"
+        - "没有"
+        - "不确定"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: 复现命令
+      description: 尽量给出最小的命令与文件组合。
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 请附上完整日志。
+    validations:
+      required: true
