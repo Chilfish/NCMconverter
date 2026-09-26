@@ -113,7 +113,7 @@
 - [ ] **上游库问题**：
   - `go-flac/v2` 的 `ParseFile` 在解析失败时**泄漏文件句柄**（无法从外部关闭），我们已在 `internal/tag/flac/flac.go` 改成自己 `os.Open` + `ParseBytes` 绕开。建议向上游反馈，并保留该注释。
   - `bogem/id3v2` 的 `Save()` 在写入失败时不会关闭 `-id3v2` 临时文件，Windows 上会留下无法删除的残留。我们把标签锁到 ID3v2.4 + UTF-8 后不再触发，但仍是隐患。
-- [ ] **CLI 打磨**：`--dry-run`（只列出将要转换的文件）、`--overwrite`/`--skip-existing`、自定义输出文件名模板、`--quiet`。
+- [x] **CLI 打磨**：`--dry-run`（只列出将要转换的文件）、`--overwrite`/`--skip-existing`、自定义输出文件名模板、`--quiet`。（已实现 `--dry-run`、`--skip-existing`（默认仍为覆盖）、`--quiet`/`-q`、`--output-template`（占位符 `{name}`/`{title}`/`{artist}`/`{album}`/`{id}`/`{format}`，扩展名固定，且不允许写出输出目录）。未单独提供 `--overwrite`，因为覆盖本就是默认行为。）
 - [x] **`--depth` 语义变更**属于破坏性变更，首次发版时需要在 `CHANGELOG` 里写清：以前 `--depth 0` 传目录等于什么都不做，现在表示"只处理该目录下的直接子文件"。（已写入 `CHANGELOG.md` 的 Unreleased。）
 
 ### 8. 测试 fixture 的版权与体积

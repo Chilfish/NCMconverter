@@ -204,20 +204,3 @@ func TestRunTagsTheConvertedFileFromTheRepositorySample(t *testing.T) {
 		t.Error("converted file has an empty lyrics frame")
 	}
 }
-
-// firstArtistName returns the name of the first credited artist, or an empty
-// string when the metadata names none.
-func firstArtistName(meta *converter.Meta) string {
-	if len(meta.Artists) == 0 {
-		return ""
-	}
-	return meta.Artists[0].Name
-}
-
-// albumName returns the album title, or an empty string when there is none.
-func albumName(meta *converter.Meta) string {
-	if meta.Album == nil {
-		return ""
-	}
-	return meta.Album.Name
-}

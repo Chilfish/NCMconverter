@@ -28,13 +28,19 @@ ncmconverter [options] <files/dirs>
 | 参数 | 默认值 | 说明 |
 | --- | --- | --- |
 | `-o`、`--output` | 与源文件同目录 | 转换结果的输出目录。 |
+| `--output-template` | 空（沿用源文件名） | 结果文件的命名模板，见下文。 |
 | `-t`、`--tag` | `true` | 是否把元数据与封面写入转换后的文件。用 `--tag=false` 关闭。 |
 | `-d`、`--depth` | `0` | 在传入目录下向下查找的层数。`0` 只处理该目录下的直接子文件。 |
 | `-n`、`--threads` | `10` | 同时转换的最大文件数。 |
+| `--dry-run` | `false` | 只列出将要转换的文件，不写任何文件。 |
+| `--skip-existing` | `false` | 目标文件已存在时跳过；默认是覆盖。 |
+| `-q`、`--quiet` | `false` | 只输出警告与错误。 |
 | `-h`、`--help` | | 显示帮助。 |
 | `-v`、`--version` | | 显示版本。 |
 
 `--deepth` 与 `--thread` 作为 `--depth`、`--threads` 的别名继续可用。
+
+`--output-template` 支持的占位符：`{name}`（源文件名，不含扩展名）、`{title}`、`{artist}`（第一位艺人）、`{album}`、`{id}`（曲目 ID）、`{format}`。扩展名始终取自音频的实际格式，无法用模板改写。元数据里的路径分隔符会被替换掉，模板也不能把文件写到输出目录之外。
 
 ```sh
 # 转换单个文件，结果写在源文件旁边
@@ -42,6 +48,12 @@ ncmconverter song.ncm
 
 # 向下两层转换整个目录树，输出到 ./out
 ncmconverter -d 2 -o ./out ~/Music/ncm
+
+# 按「艺人 - 标题」命名，但不动已经转换过的文件
+ncmconverter -o ./out --output-template '{artist} - {title}' --skip-existing ~/Music/ncm
+
+# 先看看会转换哪些文件
+ncmconverter --dry-run -d 2 ~/Music/ncm
 
 # 不写入任何元数据
 ncmconverter --tag=false song.ncm
