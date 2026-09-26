@@ -3,23 +3,27 @@
 [![CI](https://github.com/chilfish/NCMconverter/actions/workflows/ci.yml/badge.svg)](https://github.com/chilfish/NCMconverter/actions/workflows/ci.yml)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/chilfish/NCMconverter)](https://pkg.go.dev/github.com/chilfish/NCMconverter)
 
-NCMconverter 将网易云音乐的 `.ncm` 文件转换为可播放的 mp3 或 flac，并保留其中的
-元数据与封面。
+NCMconverter 将网易云音乐的 `.ncm` 文件转换为可播放的 mp3 或 flac，并保留其中的元数据与封面。
 
-格式的最初解析参考了 [yoki123/ncmdump][1]。本实现直接解析容器格式，并支持并发
-转换多个文件。
+格式的最初解析参考了 [yoki123/ncmdump][1]。本实现直接解析容器格式，并支持并发转换多个文件。
 
 ## 安装
 
-    go install github.com/chilfish/NCMconverter/cmd/ncmconverter@latest
+```sh
+go install github.com/chilfish/NCMconverter/cmd/ncmconverter@latest
+```
 
 或在源码目录下构建：
 
-    make build          # 生成 bin/ncmconverter
+```sh
+make build          # 生成 bin/ncmconverter
+```
 
 ## 使用
 
-    ncmconverter [options] <files/dirs>
+```sh
+ncmconverter [options] <files/dirs>
+```
 
 | 参数 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -43,25 +47,20 @@ ncmconverter -d 2 -o ./out ~/Music/ncm
 ncmconverter --tag=false song.ncm
 ```
 
-转换结果沿用源文件名，扩展名取自其中音频的实际格式：`song.ncm` 会变成
-`song.mp3` 或 `song.flac`。
+转换结果沿用源文件名，扩展名取自其中音频的实际格式：`song.ncm` 会变成 `song.mp3` 或 `song.flac`。
 
-格式优先采用容器元数据中声明的值，缺失时再由音频开头的魔数判定；当元数据声明的
-格式与音频实际不符时，以元数据为准。
+格式优先采用容器元数据中声明的值，缺失时再由音频开头的魔数判定；当元数据声明的格式与音频实际不符时，以元数据为准。
 
-容器本身不保存歌词。如果源文件旁边有同名的 `.lrc`（例如 `song.ncm` 与 `song.lrc`），
-转换时会把它的内容一并嵌入输出的 mp3（`USLT` 帧）或 flac（`LYRICS` 字段）。没有
-`.lrc` 是正常情况，不影响转换。文本按 UTF-8 读取，带 BOM 或 GBK 编码的文件会自动处理；
-内容原样嵌入，因此网易云在开头写入的 JSON 曲目信息也会保留。
+容器本身不保存歌词。如果源文件旁边有同名的 `.lrc`（例如 `song.ncm` 与 `song.lrc`），转换时会把它的内容一并嵌入输出的 mp3（`USLT` 帧）或 flac（`LYRICS` 字段）。没有 `.lrc` 是正常情况，不影响转换。文本按 UTF-8 读取，带 BOM 或 GBK 编码的文件会自动处理；内容原样嵌入，因此网易云在开头写入的 JSON 曲目信息也会保留。
 
-单个文件转换失败只会被记录并跳过，不会中断整批任务；只要有文件失败，进程最终仍
-以非零状态退出。
+单个文件转换失败只会被记录并跳过，不会中断整批任务；只要有文件失败，进程最终仍以非零状态退出。
 
 ## 开发
 
 ```sh
 make test          # go test ./...
 make test-race     # go test -race ./...
+make coverage      # 写入 coverage.out
 make vet
 make fmt-check
 make lint          # 需要 golangci-lint v2
@@ -69,11 +68,9 @@ make lint          # 需要 golangci-lint v2
 
 ### 测试
 
-测试套件不依赖任何真实 `.ncm` 素材：它按格式定义在内存中构造容器，这样读取逻辑
-里的 bug 不会同时藏进本该抓住它的夹具里。
+测试套件不依赖任何真实 `.ncm` 素材：它按格式定义在内存中构造容器，这样读取逻辑里的 bug 不会同时藏进本该抓住它的夹具里。
 
-把 `.ncm` 文件放进 `testdata/` 会额外启用一个端到端测试，它会真实转换该文件，并
-逐字节校验结果中的音频与容器内容完全一致（含标签）。这些文件不会被提交。
+把 `.ncm` 文件放进 `testdata/` 会额外启用一个端到端测试，它会真实转换该文件，并逐字节校验结果中的音频与容器内容完全一致（含标签）。仓库自带一份这样的素材，其来源与版权说明见 [`testdata/README.md`](testdata/README.md)。
 
 ## 目录结构
 
