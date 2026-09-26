@@ -34,6 +34,28 @@ archives:
       - LICENSE
       - README.md
 
+# deb and rpm packages for the Linux targets. Windows and macOS get the plain
+# archives above.
+nfpms:
+  - id: ncmconverter
+    package_name: ncmconverter
+    vendor: Chilfish
+    homepage: https://github.com/chilfish/ncmconverter
+    maintainer: Chilfish <chill4fish@gmail.com>
+    description: |-
+      Convert NetEase Cloud Music (.ncm) files into mp3 or flac, keeping the
+      metadata, cover art and lyrics.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    contents:
+      - src: LICENSE
+        dst: /usr/share/doc/ncmconverter/LICENSE
+      - src: README.md
+        dst: /usr/share/doc/ncmconverter/README.md
+
 checksum:
   name_template: checksums.txt
 

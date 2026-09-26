@@ -11,6 +11,7 @@
 - 转换时会把与源文件同名的 `.lrc` 嵌入产物：mp3 写入 `USLT` 帧，flac 写入 `LYRICS` 字段。歌词侧车文件不存在是正常情况，不影响转换；带 BOM 或 GBK 编码的文件会被自动处理。
 - CLI 增加四个开关：`--output-template` 按 `{name}`/`{title}`/`{artist}`/`{album}`/`{id}`/`{format}` 命名结果、`--dry-run` 只列出将要转换的文件、`--skip-existing` 跳过已存在的产物、`--quiet` 只输出警告与错误。
 - 跨平台发布产物：`v*` tag 触发 GoReleaser，交叉编译 linux/darwin/windows × amd64/arm64，附带 `checksums.txt`。
+- 发布产物同时生成 Linux 的 `deb` 与 `rpm` 安装包（amd64/arm64），二进制装到 `/usr/bin/ncmconverter`。
 - CI 增加 macOS 与 Windows 的测试矩阵，以及覆盖率报告。
 - 补齐开源社区文件：贡献指南、行为准则、安全政策、issue 与 PR 模板、dependabot、`.editorconfig`/`.gitattributes`，以及 `docs/architecture.md`。
 
