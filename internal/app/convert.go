@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/chilfish/NCMconverter/internal/converter"
-	"github.com/chilfish/NCMconverter/internal/ncm"
-	"github.com/chilfish/NCMconverter/internal/tag"
+	"github.com/chilfish/ncmconverter/internal/converter"
+	"github.com/chilfish/ncmconverter/internal/ncm"
+	"github.com/chilfish/ncmconverter/internal/tag"
 )
 
 // convert decodes one container and writes the audio, and optionally the tags,

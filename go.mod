@@ -1,4 +1,4 @@
-module github.com/chilfish/NCMconverter
+module github.com/chilfish/ncmconverter
 
 go 1.27
 

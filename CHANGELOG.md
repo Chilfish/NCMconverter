@@ -15,6 +15,7 @@
 
 ### Changed
 
+- 模块路径改为全小写 `github.com/chilfish/ncmconverter`，符合 Go 的路径惯例。导入路径与 `go install` 命令相应变化；因为尚无已发布版本，未提供旧路径的重定向。
 - `--depth` 语义变更（**破坏性**）：以前 `--depth 0` 传目录等于什么都不做，现在表示"只处理该目录下的直接子文件"。`--deepth`、`--thread` 仍作为别名可用。
 - `--version` 现在同时输出构建时的 commit 与时间，便于定位运行中的二进制。
 

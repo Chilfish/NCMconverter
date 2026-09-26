@@ -1,7 +1,7 @@
 # NCMconverter
 
 [![CI](https://github.com/chilfish/NCMconverter/actions/workflows/ci.yml/badge.svg)](https://github.com/chilfish/NCMconverter/actions/workflows/ci.yml)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/chilfish/NCMconverter)](https://pkg.go.dev/github.com/chilfish/NCMconverter)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/chilfish/ncmconverter)](https://pkg.go.dev/github.com/chilfish/ncmconverter)
 
 NCMconverter 将网易云音乐的 `.ncm` 文件转换为可播放的 mp3 或 flac，并保留其中的元数据与封面。
 
@@ -10,7 +10,7 @@ NCMconverter 将网易云音乐的 `.ncm` 文件转换为可播放的 mp3 或 fl
 ## 安装
 
 ```sh
-go install github.com/chilfish/NCMconverter/cmd/ncmconverter@latest
+go install github.com/chilfish/ncmconverter/cmd/ncmconverter@latest
 ```
 
 或在源码目录下构建：

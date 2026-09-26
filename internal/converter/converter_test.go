@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chilfish/NCMconverter/internal/ncm"
-	"github.com/chilfish/NCMconverter/internal/ncmtest"
+	"github.com/chilfish/ncmconverter/internal/ncm"
+	"github.com/chilfish/ncmconverter/internal/ncmtest"
 )
 
 // sampleMeta is the metadata used by the container-level tests.

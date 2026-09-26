@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/bogem/id3v2"
-	"github.com/chilfish/NCMconverter/internal/ncmtest"
+	"github.com/chilfish/ncmconverter/internal/ncmtest"
 	flacpicture "github.com/go-flac/flacpicture/v2"
 	"github.com/go-flac/flacvorbis/v2"
 	goflac "github.com/go-flac/go-flac/v2"

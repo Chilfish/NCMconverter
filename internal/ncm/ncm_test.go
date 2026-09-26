@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/chilfish/NCMconverter/internal/ncm"
-	"github.com/chilfish/NCMconverter/internal/ncmtest"
+	"github.com/chilfish/ncmconverter/internal/ncm"
+	"github.com/chilfish/ncmconverter/internal/ncmtest"
 )
 
 // openContainer writes a container to a temporary file and opens it.

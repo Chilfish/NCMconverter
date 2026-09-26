@@ -9,7 +9,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/chilfish/NCMconverter/internal/converter"
+	"github.com/chilfish/ncmconverter/internal/converter"
 )
 
 // fakeTagger records the calls made to it so that tests can tell a field that

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chilfish/NCMconverter/internal/ncm"
+	"github.com/chilfish/ncmconverter/internal/ncm"
 )
 
 // Prefixes and masks used by the container format.

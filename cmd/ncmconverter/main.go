@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/chilfish/NCMconverter/internal/app"
+	"github.com/chilfish/ncmconverter/internal/app"
 	"github.com/urfave/cli/v3"
 )
 

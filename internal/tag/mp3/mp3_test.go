@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/bogem/id3v2"
-	"github.com/chilfish/NCMconverter/internal/ncmtest"
+	"github.com/chilfish/ncmconverter/internal/ncmtest"
 )
 
 // writeMinimalMP3 writes a minimal mp3 stream into a temporary file and returns

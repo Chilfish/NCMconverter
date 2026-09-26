@@ -8,9 +8,9 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/chilfish/NCMconverter/internal/converter"
-	"github.com/chilfish/NCMconverter/internal/tag/flac"
-	"github.com/chilfish/NCMconverter/internal/tag/mp3"
+	"github.com/chilfish/ncmconverter/internal/converter"
+	"github.com/chilfish/ncmconverter/internal/tag/flac"
+	"github.com/chilfish/ncmconverter/internal/tag/mp3"
 )
 
 // MIME types this package assigns to embedded cover art.

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/bogem/id3v2"
-	"github.com/chilfish/NCMconverter/internal/converter"
-	"github.com/chilfish/NCMconverter/internal/ncm"
+	"github.com/chilfish/ncmconverter/internal/converter"
+	"github.com/chilfish/ncmconverter/internal/ncm"
 )
 
 // repositorySamples returns the containers under testdata/.
