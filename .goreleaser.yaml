@@ -85,12 +85,13 @@ changelog:
       order: 2
   filters:
     exclude:
-      - "^chore:"
-      - "^ci:"
-      - "^docs:"
-      - "^test:"
-      # A history-wide rewrite, dependency bumps and the first commit are not
-      # user-facing.
+      # Match the bare type, so a scoped subject such as chore(release): or
+      # build(deps): is excluded too. Release plumbing and the pre-release
+      # rewrite are not user-facing changes.
+      - "^chore"
+      - "^ci"
+      - "^docs"
+      - "^test"
+      - "^build"
       - "^refactor"
-      - "^build\\(deps\\):"
       - "^Initial commit"
