@@ -104,7 +104,7 @@
 - [ ] `.editorconfig`、`.gitattributes`（统一 LF、标记二进制文件）
 - [ ] `docs/` 下补架构说明：容器字节布局（本轮已在 `internal/ncm/ncm.go` 的包注释里
       写了实测布局，可提炼出来）、解密流程、标签写入策略
-- [ ] 仓库描述与 topics（在 GitHub 设置里）
+- [ ] 仓库描述与 topics（描述与 7 个 topics 已设置；如需再补充请直接在 GitHub 设置里改）
 
 ### 5. `Makefile` 命名与内容
 
