@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -99,4 +100,32 @@ func TestReadLyricsHandlesAnEmptySidecar(t *testing.T) {
 	if lyrics != "" {
 		t.Errorf("lyrics = %q, want empty", lyrics)
 	}
+}
+
+// TestReadLyricsReadsALargeSidecar pins the boundary where a sidecar is far
+// larger than anything NetEase writes: a truncated read or a cap on the size
+// would silently drop the tail of the lyrics.
+func TestReadLyricsReadsALargeSidecar(t *testing.T) {
+	payload := largeLyrics()
+	if len(payload) < 1<<20 {
+		t.Fatalf("the fixture is only %d bytes, too small to exercise the boundary", len(payload))
+	}
+
+	dir := t.TempDir()
+	source := writeSidecar(t, dir, "song", []byte(payload))
+
+	lyrics, err := readLyrics(source)
+	if err != nil {
+		t.Fatalf("read lyrics: %v", err)
+	}
+	if lyrics != payload {
+		t.Errorf("lyrics differ from the sidecar: %d bytes read, want %d", len(lyrics), len(payload))
+	}
+}
+
+// largeLyrics builds a lyrics payload of a few megabytes. The lines are
+// multi-byte on purpose, so the payload also covers a non-ASCII read.
+func largeLyrics() string {
+	const line = "[00:01.000] 大きな歌詞の行 with ascii and 中文\n"
+	return strings.Repeat(line, (1<<20)/len(line)+1)
 }

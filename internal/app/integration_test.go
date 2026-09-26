@@ -364,3 +364,84 @@ func writeLyricsSidecar(t *testing.T, source, lyrics string) {
 		t.Fatalf("write lyrics sidecar: %v", err)
 	}
 }
+
+// TestRunEmbedsLargeLyrics converts a container whose sidecar is far larger
+// than anything NetEase writes, and reads the lyrics back, one format per
+// subtest. It pins the boundary where a tag library might silently cap the size
+// of what it stores.
+func TestRunEmbedsLargeLyrics(t *testing.T) {
+	lyrics := largeLyrics()
+	if len(lyrics) < 1<<20 {
+		t.Fatalf("the fixture is only %d bytes, too small to exercise the boundary", len(lyrics))
+	}
+
+	t.Run("mp3", func(t *testing.T) {
+		dir := t.TempDir()
+		source := container(t, dir, "song.ncm", ncmtest.Options{
+			Meta:  map[string]any{"format": "mp3", "musicName": "Track"},
+			Music: ncmtest.MinimalMP3(frames(512, 0x1a)),
+		})
+		writeLyricsSidecar(t, source, lyrics)
+
+		if err := Run(context.Background(), Options{Inputs: []string{source}, Tag: true, Threads: 1}); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+
+		tag, err := id3v2.Open(filepath.Join(dir, "song.mp3"), id3v2.Options{Parse: true})
+		if err != nil {
+			t.Fatalf("open converted mp3: %v", err)
+		}
+		defer func() { _ = tag.Close() }()
+
+		uslt, ok := tag.GetLastFrame("USLT").(id3v2.UnsynchronisedLyricsFrame)
+		if !ok {
+			t.Fatal("converted mp3 has no USLT frame")
+		}
+		if len(uslt.Lyrics) != len(lyrics) {
+			t.Fatalf("lyrics are %d bytes, want %d", len(uslt.Lyrics), len(lyrics))
+		}
+		if uslt.Lyrics != lyrics {
+			t.Error("the embedded lyrics differ from the sidecar")
+		}
+	})
+
+	t.Run("flac", func(t *testing.T) {
+		dir := t.TempDir()
+		source := container(t, dir, "song.ncm", ncmtest.Options{
+			Meta:  map[string]any{"format": "flac", "musicName": "Track"},
+			Music: ncmtest.MinimalFLAC(frames(512, 0x1b)),
+		})
+		writeLyricsSidecar(t, source, lyrics)
+
+		if err := Run(context.Background(), Options{Inputs: []string{source}, Tag: true, Threads: 1}); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+
+		file, err := goflac.ParseFile(filepath.Join(dir, "song.flac"))
+		if err != nil {
+			t.Fatalf("parse converted flac: %v", err)
+		}
+		defer func() { _ = file.Close() }()
+
+		var got []string
+		for _, block := range file.Meta {
+			if block.Type != goflac.VorbisComment {
+				continue
+			}
+			comments, err := flacvorbis.ParseFromMetaDataBlock(*block)
+			if err != nil {
+				t.Fatalf("parse vorbis comment block: %v", err)
+			}
+			got, _ = comments.Get("LYRICS")
+		}
+		if len(got) != 1 {
+			t.Fatalf("got %d LYRICS fields, want 1", len(got))
+		}
+		if len(got[0]) != len(lyrics) {
+			t.Fatalf("lyrics are %d bytes, want %d", len(got[0]), len(lyrics))
+		}
+		if got[0] != lyrics {
+			t.Error("the embedded lyrics differ from the sidecar")
+		}
+	})
+}
