@@ -34,6 +34,7 @@ type Tagger interface {
 	SetAlbum(album string) error
 	SetArtists(artists []string) error
 	SetComment(comment string) error
+	SetLyrics(lyrics string) error
 	Save() error
 	Close() error
 }
@@ -51,12 +52,13 @@ func NewTagger(path, format string) (Tagger, error) {
 }
 
 // WriteTo opens the audio file at path and writes the tags described by meta,
-// plus the cover image in cover, into it.
+// the cover image in cover, and the lyrics in lyrics into it.
 //
 // When cover is empty and the metadata carries a remote cover URL, the image is
 // downloaded instead. A download failure is not fatal: the URL is then stored
-// as a link rather than embedded.
-func WriteTo(ctx context.Context, path string, cover []byte, meta *converter.Meta) error {
+// as a link rather than embedded. Empty lyrics are skipped, because having none
+// is the common case.
+func WriteTo(ctx context.Context, path string, cover []byte, meta *converter.Meta, lyrics string) error {
 	if meta == nil {
 		return errors.New("write tags: metadata is nil")
 	}
@@ -71,12 +73,12 @@ func WriteTo(ctx context.Context, path string, cover []byte, meta *converter.Met
 		}
 	}()
 
-	return WriteTags(ctx, tagger, cover, meta)
+	return WriteTags(ctx, tagger, cover, meta, lyrics)
 }
 
-// WriteTags writes the tags described by meta into an already-open Tagger and
-// saves them.
-func WriteTags(ctx context.Context, tagger Tagger, cover []byte, meta *converter.Meta) error {
+// WriteTags writes the tags described by meta, the lyrics in lyrics, into an
+// already-open Tagger and saves them.
+func WriteTags(ctx context.Context, tagger Tagger, cover []byte, meta *converter.Meta, lyrics string) error {
 	if meta == nil {
 		return errors.New("write tags: metadata is nil")
 	}
@@ -102,6 +104,11 @@ func WriteTags(ctx context.Context, tagger Tagger, cover []byte, meta *converter
 	if meta.Comment != "" {
 		if err := tagger.SetComment(meta.Comment); err != nil {
 			return fmt.Errorf("set comment: %w", err)
+		}
+	}
+	if lyrics != "" {
+		if err := tagger.SetLyrics(lyrics); err != nil {
+			return fmt.Errorf("set lyrics: %w", err)
 		}
 	}
 

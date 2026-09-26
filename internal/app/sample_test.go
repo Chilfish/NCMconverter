@@ -106,7 +106,7 @@ func assertConvertedAudioIsIntact(t *testing.T, source, converted string) {
 		if !bytes.Equal(got, want) {
 			t.Errorf("converted audio differs from the container contents: %d bytes, want %d", len(got), len(want))
 		}
-		assertMP3Tags(t, converted, decoded.MetaData.Name, decoded.MetaData.Artists[0].Name, decoded.MetaData.Album.Name)
+		assertMP3Tags(t, converted, decoded.MetaData.Name, firstArtistName(decoded.MetaData), albumName(decoded.MetaData))
 	case converter.FormatFLAC:
 		if !bytes.HasPrefix(data, []byte("fLaC")) {
 			t.Fatal("converted file is not a FLAC stream")
@@ -195,4 +195,29 @@ func TestRunTagsTheConvertedFileFromTheRepositorySample(t *testing.T) {
 	if len(tag.GetFrames("APIC")) == 0 {
 		t.Error("converted file has no cover art")
 	}
+	// The fixture ships a .lrc next to it, so its lyrics have to make it in.
+	uslt, ok := tag.GetLastFrame("USLT").(id3v2.UnsynchronisedLyricsFrame)
+	if !ok {
+		t.Fatal("converted file has no lyrics frame")
+	}
+	if uslt.Lyrics == "" {
+		t.Error("converted file has an empty lyrics frame")
+	}
+}
+
+// firstArtistName returns the name of the first credited artist, or an empty
+// string when the metadata names none.
+func firstArtistName(meta *converter.Meta) string {
+	if len(meta.Artists) == 0 {
+		return ""
+	}
+	return meta.Artists[0].Name
+}
+
+// albumName returns the album title, or an empty string when there is none.
+func albumName(meta *converter.Meta) string {
+	if meta.Album == nil {
+		return ""
+	}
+	return meta.Album.Name
 }

@@ -23,6 +23,7 @@ type fakeTagger struct {
 	album     string
 	artists   []string
 	comment   string
+	lyrics    string
 	saved     bool
 	err       error
 	// coverErr fails only SetCover, so the cover art path can be exercised on
@@ -73,6 +74,12 @@ func (f *fakeTagger) SetComment(comment string) error {
 	return f.err
 }
 
+func (f *fakeTagger) SetLyrics(lyrics string) error {
+	f.record("SetLyrics")
+	f.lyrics = lyrics
+	return f.err
+}
+
 func (f *fakeTagger) Save() error {
 	f.record("Save")
 	f.saved = true
@@ -95,7 +102,7 @@ func TestWriteTagsWritesEveryField(t *testing.T) {
 		Album:   &converter.Album{Name: "ドッペルゲンガー"},
 	}
 
-	if err := WriteTags(context.Background(), tagger, []byte{0xff, 0xd8, 0xff}, meta); err != nil {
+	if err := WriteTags(context.Background(), tagger, []byte{0xff, 0xd8, 0xff}, meta, "the lyrics"); err != nil {
 		t.Fatalf("write tags: %v", err)
 	}
 
@@ -114,6 +121,9 @@ func TestWriteTagsWritesEveryField(t *testing.T) {
 	if tagger.coverMIME != MIMEJPEG {
 		t.Errorf("cover mime = %q, want %q", tagger.coverMIME, MIMEJPEG)
 	}
+	if tagger.lyrics != "the lyrics" {
+		t.Errorf("lyrics = %q, want %q", tagger.lyrics, "the lyrics")
+	}
 	if !tagger.saved {
 		t.Error("tags were not saved")
 	}
@@ -125,7 +135,7 @@ func TestWriteTagsSkipsAbsentFields(t *testing.T) {
 	tagger := &fakeTagger{}
 	meta := &converter.Meta{Format: converter.FormatMP3}
 
-	if err := WriteTags(context.Background(), tagger, nil, meta); err != nil {
+	if err := WriteTags(context.Background(), tagger, nil, meta, ""); err != nil {
 		t.Fatalf("write tags: %v", err)
 	}
 
@@ -144,6 +154,9 @@ func TestWriteTagsSkipsAbsentFields(t *testing.T) {
 	if tagger.called("SetCover") || tagger.called("SetCoverURL") {
 		t.Error("wrote cover art even though there is none")
 	}
+	if tagger.called("SetLyrics") {
+		t.Error("wrote lyrics even though there are none")
+	}
 	if !tagger.saved {
 		t.Error("tags were not saved")
 	}
@@ -155,7 +168,7 @@ func TestWriteTagsWithoutAlbumDoesNotPanic(t *testing.T) {
 	tagger := &fakeTagger{}
 	meta := &converter.Meta{Name: "Track", Format: converter.FormatMP3}
 
-	if err := WriteTags(context.Background(), tagger, nil, meta); err != nil {
+	if err := WriteTags(context.Background(), tagger, nil, meta, ""); err != nil {
 		t.Fatalf("write tags: %v", err)
 	}
 	if tagger.title != "Track" {
@@ -173,7 +186,7 @@ func TestWriteTagsDownloadsCoverAndDetectsItsType(t *testing.T) {
 	tagger := &fakeTagger{}
 	meta := &converter.Meta{Album: &converter.Album{CoverURL: server.URL}}
 
-	if err := WriteTags(context.Background(), tagger, nil, meta); err != nil {
+	if err := WriteTags(context.Background(), tagger, nil, meta, ""); err != nil {
 		t.Fatalf("write tags: %v", err)
 	}
 	if !bytes.Equal(tagger.cover, image) {
@@ -197,7 +210,7 @@ func TestWriteTagsFallsBackToALink(t *testing.T) {
 	tagger := &fakeTagger{}
 	meta := &converter.Meta{Album: &converter.Album{CoverURL: server.URL}}
 
-	if err := WriteTags(context.Background(), tagger, nil, meta); err != nil {
+	if err := WriteTags(context.Background(), tagger, nil, meta, ""); err != nil {
 		t.Fatalf("write tags: %v", err)
 	}
 	if tagger.coverURL != server.URL {
@@ -213,14 +226,14 @@ func TestWriteTagsPropagatesTaggerErrors(t *testing.T) {
 	tagger := &fakeTagger{err: sentinel}
 	meta := &converter.Meta{Name: "Track", Format: converter.FormatMP3}
 
-	err := WriteTags(context.Background(), tagger, nil, meta)
+	err := WriteTags(context.Background(), tagger, nil, meta, "")
 	if !errors.Is(err, sentinel) {
 		t.Fatalf("write tags error = %v, want it to wrap %v", err, sentinel)
 	}
 }
 
 func TestWriteTagsRejectsNilMetadata(t *testing.T) {
-	if err := WriteTags(context.Background(), &fakeTagger{}, nil, nil); err == nil {
+	if err := WriteTags(context.Background(), &fakeTagger{}, nil, nil, ""); err == nil {
 		t.Fatal("write tags succeeded without metadata, want an error")
 	}
 }
@@ -231,7 +244,7 @@ func TestWriteTagsKeepsGoingWhenTheCoverCannotBeEmbedded(t *testing.T) {
 	tagger := &fakeTagger{coverErr: errors.New("unsupported image")}
 	meta := &converter.Meta{Name: "Track", Format: converter.FormatMP3}
 
-	if err := WriteTags(context.Background(), tagger, []byte{0xff, 0xd8}, meta); err != nil {
+	if err := WriteTags(context.Background(), tagger, []byte{0xff, 0xd8}, meta, ""); err != nil {
 		t.Fatalf("a cover that cannot be embedded should not fail the write: %v", err)
 	}
 	if tagger.title != "Track" {

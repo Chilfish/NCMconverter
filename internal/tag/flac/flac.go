@@ -11,6 +11,11 @@ import (
 	"github.com/go-flac/go-flac/v2"
 )
 
+// lyricsField is the Vorbis comment key for unsynchronised lyrics. The
+// specification does not name one, but LYRICS is the key players agree on, and
+// flacvorbis defines no constant for it.
+const lyricsField = "LYRICS"
+
 // Tag writes tags into a single FLAC file.
 type Tag struct {
 	path     string
@@ -96,6 +101,11 @@ func (t *Tag) SetAlbum(album string) error {
 // SetComment sets the description unless the file already declares one.
 func (t *Tag) SetComment(comment string) error {
 	return t.setOnce(flacvorbis.FIELD_DESCRIPTION, comment)
+}
+
+// SetLyrics embeds lyrics unless the file already declares them.
+func (t *Tag) SetLyrics(lyrics string) error {
+	return t.setOnce(lyricsField, lyrics)
 }
 
 // SetArtists writes one ARTIST entry per name, unless the file already declares

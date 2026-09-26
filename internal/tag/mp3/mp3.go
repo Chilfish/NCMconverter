@@ -100,6 +100,23 @@ func (t *Tag) SetComment(comment string) error {
 	return nil
 }
 
+// SetLyrics embeds unsynchronised lyrics unless the file already declares any.
+//
+// The frame carries UTF-8 text, so the non-Latin lyrics a player would show for
+// a Japanese or Chinese track survive intact.
+func (t *Tag) SetLyrics(lyrics string) error {
+	if len(t.tag.GetFrames(t.tag.CommonID("Unsynchronised lyrics/text transcription"))) > 0 {
+		return nil
+	}
+	t.tag.AddUnsynchronisedLyricsFrame(id3v2.UnsynchronisedLyricsFrame{
+		Encoding:          id3v2.EncodingUTF8,
+		Language:          "XXX",
+		ContentDescriptor: "",
+		Lyrics:            lyrics,
+	})
+	return nil
+}
+
 // Save writes the tags back to disk and releases the file.
 func (t *Tag) Save() error {
 	if t.closed {

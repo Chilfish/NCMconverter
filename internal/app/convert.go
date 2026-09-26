@@ -44,7 +44,14 @@ func convert(ctx context.Context, source string, opts Options) error {
 	if !opts.Tag {
 		return nil
 	}
-	if err := tag.WriteTo(ctx, dest, decoded.Cover.Bytes, decoded.MetaData); err != nil {
+
+	// The lyrics live in a sidecar beside the container, because the format
+	// itself has no room for them.
+	lyrics, err := readLyrics(source)
+	if err != nil {
+		return err
+	}
+	if err := tag.WriteTo(ctx, dest, decoded.Cover.Bytes, decoded.MetaData, lyrics); err != nil {
 		return fmt.Errorf("tag %s: %w", dest, err)
 	}
 	return nil

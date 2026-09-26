@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/bogem/id3v2"
@@ -102,6 +103,11 @@ func assertMP3Tags(t *testing.T, path, wantTitle, wantArtist, wantAlbum string) 
 	}
 	if got := tag.Album(); got != wantAlbum {
 		t.Errorf("album = %q, want %q", got, wantAlbum)
+	}
+	// An empty want means the metadata declares no artist, so there is nothing
+	// to compare a frame against.
+	if wantArtist == "" {
+		return
 	}
 	// Frame identifiers are used literally here so that the assertion does not
 	// depend on the library's name mapping.
@@ -279,5 +285,82 @@ func TestRunHonoursCancellation(t *testing.T) {
 
 	if err := Run(ctx, Options{Inputs: []string{dir}, Tag: false, Threads: 1}); err == nil {
 		t.Fatal("run succeeded on a cancelled context, want an error")
+	}
+}
+
+// TestRunEmbedsTheLyricsSidecar converts containers that have a .lrc next to
+// them and checks that the lyrics reach the converted file, one format per
+// subtest.
+func TestRunEmbedsTheLyricsSidecar(t *testing.T) {
+	const lyrics = "[00:01.000] 歌詞"
+
+	t.Run("mp3", func(t *testing.T) {
+		dir := t.TempDir()
+		source := container(t, dir, "song.ncm", ncmtest.Options{
+			Meta:  map[string]any{"format": "mp3", "musicName": "Track"},
+			Music: ncmtest.MinimalMP3(frames(512, 0x0b)),
+		})
+		writeLyricsSidecar(t, source, lyrics)
+
+		if err := Run(context.Background(), Options{Inputs: []string{source}, Tag: true, Threads: 1}); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+
+		tag, err := id3v2.Open(filepath.Join(dir, "song.mp3"), id3v2.Options{Parse: true})
+		if err != nil {
+			t.Fatalf("open converted mp3: %v", err)
+		}
+		defer func() { _ = tag.Close() }()
+
+		uslt, ok := tag.GetLastFrame("USLT").(id3v2.UnsynchronisedLyricsFrame)
+		if !ok {
+			t.Fatal("converted mp3 has no USLT frame")
+		}
+		if uslt.Lyrics != lyrics {
+			t.Errorf("lyrics = %q, want %q", uslt.Lyrics, lyrics)
+		}
+	})
+
+	t.Run("flac", func(t *testing.T) {
+		dir := t.TempDir()
+		source := container(t, dir, "song.ncm", ncmtest.Options{
+			Meta:  map[string]any{"format": "flac", "musicName": "Track"},
+			Music: ncmtest.MinimalFLAC(frames(512, 0x0c)),
+		})
+		writeLyricsSidecar(t, source, lyrics)
+
+		if err := Run(context.Background(), Options{Inputs: []string{source}, Tag: true, Threads: 1}); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+
+		file, err := goflac.ParseFile(filepath.Join(dir, "song.flac"))
+		if err != nil {
+			t.Fatalf("parse converted flac: %v", err)
+		}
+		defer func() { _ = file.Close() }()
+
+		var got []string
+		for _, block := range file.Meta {
+			if block.Type != goflac.VorbisComment {
+				continue
+			}
+			comments, err := flacvorbis.ParseFromMetaDataBlock(*block)
+			if err != nil {
+				t.Fatalf("parse vorbis comment block: %v", err)
+			}
+			got, _ = comments.Get("LYRICS")
+		}
+		if len(got) != 1 || got[0] != lyrics {
+			t.Errorf("LYRICS = %v, want [%s]", got, lyrics)
+		}
+	})
+}
+
+// writeLyricsSidecar writes a .lrc file next to a container, named after it.
+func writeLyricsSidecar(t *testing.T, source, lyrics string) {
+	t.Helper()
+	path := strings.TrimSuffix(source, filepath.Ext(source)) + ".lrc"
+	if err := os.WriteFile(path, []byte(lyrics), 0o644); err != nil {
+		t.Fatalf("write lyrics sidecar: %v", err)
 	}
 }

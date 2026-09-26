@@ -51,6 +51,9 @@ func TestSaveWritesTagsAndKeepsTheAudio(t *testing.T) {
 	if err := tag.SetCover([]byte{0xff, 0xd8, 0xff, 0xe0}, "image/jpeg"); err != nil {
 		t.Fatalf("set cover: %v", err)
 	}
+	if err := tag.SetLyrics("[00:01.000] 歌詞"); err != nil {
+		t.Fatalf("set lyrics: %v", err)
+	}
 	if err := tag.Save(); err != nil {
 		t.Fatalf("save: %v", err)
 	}
@@ -98,6 +101,20 @@ func TestSaveWritesTagsAndKeepsTheAudio(t *testing.T) {
 	if len(reopened.GetFrames("COMM")) == 0 {
 		t.Error("comment frame COMM is missing")
 	}
+
+	// The lyrics frame is checked by its identifier so that the assertion does
+	// not depend on the library's name mapping.
+	lyricsFrames := reopened.GetFrames("USLT")
+	if len(lyricsFrames) != 1 {
+		t.Fatalf("got %d lyrics frames, want 1", len(lyricsFrames))
+	}
+	uslt, ok := lyricsFrames[0].(id3v2.UnsynchronisedLyricsFrame)
+	if !ok {
+		t.Fatalf("lyrics frame is %T, want id3v2.UnsynchronisedLyricsFrame", lyricsFrames[0])
+	}
+	if uslt.Lyrics != "[00:01.000] 歌詞" {
+		t.Errorf("lyrics = %q, want %q", uslt.Lyrics, "[00:01.000] 歌詞")
+	}
 }
 
 // TestSaveTwiceKeepsOneCommentBlock locks the regression where the error from
@@ -127,6 +144,9 @@ func TestSettersPreserveExistingValues(t *testing.T) {
 	if err := first.SetTitle("Original"); err != nil {
 		t.Fatalf("set title: %v", err)
 	}
+	if err := first.SetLyrics("original lyrics"); err != nil {
+		t.Fatalf("set lyrics: %v", err)
+	}
 	if err := first.Save(); err != nil {
 		t.Fatalf("save: %v", err)
 	}
@@ -137,6 +157,9 @@ func TestSettersPreserveExistingValues(t *testing.T) {
 	}
 	if err := second.SetTitle("Replacement"); err != nil {
 		t.Fatalf("set title: %v", err)
+	}
+	if err := second.SetLyrics("replacement lyrics"); err != nil {
+		t.Fatalf("set lyrics: %v", err)
 	}
 	if err := second.Save(); err != nil {
 		t.Fatalf("save: %v", err)
@@ -150,6 +173,13 @@ func TestSettersPreserveExistingValues(t *testing.T) {
 
 	if got := reopened.Title(); got != "Original" {
 		t.Errorf("title = %q, want the original value to be preserved", got)
+	}
+	uslt, ok := reopened.GetLastFrame("USLT").(id3v2.UnsynchronisedLyricsFrame)
+	if !ok {
+		t.Fatal("lyrics frame USLT is missing")
+	}
+	if uslt.Lyrics != "original lyrics" {
+		t.Errorf("lyrics = %q, want the original value to be preserved", uslt.Lyrics)
 	}
 }
 

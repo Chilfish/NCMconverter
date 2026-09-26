@@ -93,6 +93,9 @@ func TestSaveWritesTagsAndKeepsTheAudio(t *testing.T) {
 	if err := tag.SetCover(ncmtest.JPEG(), "image/jpeg"); err != nil {
 		t.Fatalf("set cover: %v", err)
 	}
+	if err := tag.SetLyrics("[00:01.000] 歌詞"); err != nil {
+		t.Fatalf("set lyrics: %v", err)
+	}
 	if err := tag.Save(); err != nil {
 		t.Fatalf("save: %v", err)
 	}
@@ -121,6 +124,9 @@ func TestSaveWritesTagsAndKeepsTheAudio(t *testing.T) {
 	if artists, _ := comments.Get(flacvorbis.FIELD_ARTIST); !slices.Equal(artists, []string{"A", "B"}) {
 		t.Errorf("ARTIST = %v, want [A B]", artists)
 	}
+	if lyrics, _ := comments.Get(lyricsField); !slices.Equal(lyrics, []string{"[00:01.000] 歌詞"}) {
+		t.Errorf("LYRICS = %v, want the lyrics back", lyrics)
+	}
 	if len(pictures) != 1 {
 		t.Fatalf("file has %d picture blocks, want 1", len(pictures))
 	}
@@ -139,6 +145,9 @@ func TestSaveTwiceKeepsOneCommentBlock(t *testing.T) {
 		if err := tag.SetTitle(title); err != nil {
 			t.Fatalf("set title: %v", err)
 		}
+		if err := tag.SetLyrics("original lyrics"); err != nil {
+			t.Fatalf("set lyrics: %v", err)
+		}
 		if err := tag.Save(); err != nil {
 			t.Fatalf("save %q: %v", title, err)
 		}
@@ -151,6 +160,10 @@ func TestSaveTwiceKeepsOneCommentBlock(t *testing.T) {
 	title, _ := comments.Get(flacvorbis.FIELD_TITLE)
 	if !slices.Equal(title, []string{"Original"}) {
 		t.Errorf("TITLE = %v, want the original value to be preserved", title)
+	}
+	lyrics, _ := comments.Get(lyricsField)
+	if !slices.Equal(lyrics, []string{"original lyrics"}) {
+		t.Errorf("LYRICS = %v, want the original value to be preserved", lyrics)
 	}
 }
 
