@@ -4,7 +4,9 @@
 
 ## [Unreleased]
 
-尚未发布任何带 tag 的版本，以下内容都在 `main` 上。
+## [0.1.0] - 2026-09-27
+
+首个正式版本：把网易云音乐的 `.ncm` 容器转换成可播放的 mp3 或 flac，并保留其中的元数据、封面与歌词。
 
 ### Added
 
@@ -17,9 +19,12 @@
 
 ### Changed
 
-- 模块路径改为全小写 `github.com/chilfish/ncmconverter`，符合 Go 的路径惯例。导入路径与 `go install` 命令相应变化；因为尚无已发布版本，未提供旧路径的重定向。
+- 模块路径改为全小写 `github.com/chilfish/ncmconverter`，符合 Go 的路径惯例。导入路径与 `go install` 命令相应变化；本版本即首个发布版本，旧路径从未对外发布过，因此未提供重定向。
 - `--depth` 语义变更（**破坏性**）：以前 `--depth 0` 传目录等于什么都不做，现在表示"只处理该目录下的直接子文件"。`--deepth`、`--thread` 仍作为别名可用。
 - `--version` 现在同时输出构建时的 commit 与时间，便于定位运行中的二进制。
+
+[Unreleased]: https://github.com/Chilfish/NCMconverter/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Chilfish/NCMconverter/releases/tag/v0.1.0
 
 [kac]: https://keepachangelog.com/zh-CN/1.1.0/
 [semver]: https://semver.org/lang/zh-CN/

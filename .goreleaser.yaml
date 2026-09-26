@@ -62,11 +62,35 @@ checksum:
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 
+release:
+  # The curated, user-facing notes live in CHANGELOG.md. The body below is the
+  # commit list, grouped by conventional-commit type, with a link back to it.
+  footer: |
+    ---
+
+    完整的变更记录见 [CHANGELOG.md](https://github.com/Chilfish/NCMconverter/blob/main/CHANGELOG.md)。
+
 changelog:
+  use: github
   sort: asc
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?!?:'
+      order: 0
+    - title: Bug fixes
+      regexp: '^fix(\(.+\))?!?:'
+      order: 1
+    - title: Others
+      regexp: '^.*$'
+      order: 2
   filters:
     exclude:
       - "^chore:"
       - "^ci:"
       - "^docs:"
       - "^test:"
+      # A history-wide rewrite, dependency bumps and the first commit are not
+      # user-facing.
+      - "^refactor"
+      - "^build\\(deps\\):"
+      - "^Initial commit"
