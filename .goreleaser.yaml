@@ -1,0 +1,50 @@
+# GoReleaser configuration. See https://goreleaser.com for the reference.
+version: 2
+
+project_name: ncmconverter
+
+builds:
+  - id: ncmconverter
+    main: ./cmd/ncmconverter
+    binary: ncmconverter
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: ncmconverter
+    # Windows gets a zip, because its users expect one; everything else gets a
+    # tarball.
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^chore:"
+      - "^ci:"
+      - "^docs:"
+      - "^test:"

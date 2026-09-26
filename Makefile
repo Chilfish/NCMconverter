@@ -8,9 +8,11 @@ BINARY := $(CMD).exe
 endif
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-LDFLAGS := -s -w -X main.version=$(VERSION)
+COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo none)
+DATE ?= $(shell git log -1 --format=%cI 2>/dev/null || echo unknown)
+LDFLAGS := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
-.PHONY: all build install run test test-race vet fmt fmt-check lint clean
+.PHONY: all build install run test test-race coverage vet fmt fmt-check lint clean
 
 all: build
 
@@ -34,6 +36,10 @@ test:
 test-race:
 	go test -race ./...
 
+# coverage: write a coverage profile to coverage.out
+coverage:
+	go test -covermode=atomic -coverprofile=coverage.out ./...
+
 # vet: run go vet
 vet:
 	go vet ./...
@@ -53,3 +59,4 @@ lint:
 # clean: remove build output only, never the audio or the containers
 clean:
 	-rm -rf bin
+	-rm -f coverage.out

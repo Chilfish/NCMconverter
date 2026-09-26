@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -13,15 +14,27 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// version is overridden at build time, for example with
-// -ldflags "-X main.version=v1.2.3".
-var version = "dev"
+// Build information, overridden at build time. For example:
+//
+//	-ldflags "-X main.version=v1.2.3 -X main.commit=$(git rev-parse HEAD) -X main.date=$(date -u +%FT%TZ)"
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+
+	// Report the commit and build date alongside the version, so a binary
+	// someone is running can be traced back to a revision.
+	cli.VersionPrinter = func(cmd *cli.Command) {
+		_, _ = fmt.Fprintf(cmd.Root().Writer, "%s %s (commit %s, built %s)\n",
+			cmd.Name, cmd.Version, commit, date)
+	}
 
 	command := &cli.Command{
 		Name:      "ncmconverter",
