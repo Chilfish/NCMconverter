@@ -3,6 +3,8 @@ package app
 import (
 	"bytes"
 	"context"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,21 +14,33 @@ import (
 	"github.com/chilfish/NCMconverter/internal/ncm"
 )
 
-// TestRunConvertsTheRepositorySample converts the sample container that ships
-// with the repository, and checks that tagging left the audio untouched.
+// repositorySamples returns the containers under testdata/.
 //
-// Containers are excluded from version control, so this test skips when the
-// sample is not on disk.
-func TestRunConvertsTheRepositorySample(t *testing.T) {
-	samples, err := filepath.Glob(filepath.Join("..", "..", "testdata", "*.ncm"))
-	if err != nil {
-		t.Fatalf("find samples: %v", err)
-	}
-	if len(samples) == 0 {
-		t.Skip("no sample container in testdata")
+// A checkout without a testdata/ directory skips, because the fixtures live
+// outside the module. A directory that is there but holds no container fails:
+// the end-to-end checks below would otherwise pass without doing anything.
+func repositorySamples(t *testing.T) []string {
+	t.Helper()
+
+	dir := filepath.Join("..", "..", "testdata")
+	if _, err := os.Stat(dir); errors.Is(err, fs.ErrNotExist) {
+		t.Skipf("no %s directory", dir)
 	}
 
-	for _, sample := range samples {
+	samples, err := filepath.Glob(filepath.Join(dir, "*.ncm"))
+	if err != nil {
+		t.Fatalf("find samples in %s: %v", dir, err)
+	}
+	if len(samples) == 0 {
+		t.Fatalf("%s holds no container, so these end-to-end checks would not run", dir)
+	}
+	return samples
+}
+
+// TestRunConvertsTheRepositorySample converts the sample container that ships
+// with the repository, and checks that tagging left the audio untouched.
+func TestRunConvertsTheRepositorySample(t *testing.T) {
+	for _, sample := range repositorySamples(t) {
 		t.Run(filepath.Base(sample), func(t *testing.T) {
 			dir := t.TempDir()
 			if err := Run(context.Background(), Options{
@@ -151,13 +165,7 @@ func flacHeaderSize(t *testing.T, data []byte) int {
 // TestRunTagsTheConvertedFileFromTheRepositorySample checks the metadata that
 // ends up in a converted sample, including the non-Latin fields.
 func TestRunTagsTheConvertedFileFromTheRepositorySample(t *testing.T) {
-	samples, err := filepath.Glob(filepath.Join("..", "..", "testdata", "*.ncm"))
-	if err != nil {
-		t.Fatalf("find samples: %v", err)
-	}
-	if len(samples) == 0 {
-		t.Skip("no sample container in testdata")
-	}
+	samples := repositorySamples(t)
 
 	dir := t.TempDir()
 	if err := Run(context.Background(), Options{Inputs: samples[:1], Output: dir, Tag: true, Threads: 1}); err != nil {
