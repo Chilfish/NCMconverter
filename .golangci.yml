@@ -1,0 +1,19 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - errorlint
+    - misspell
+    - nilerr
+    - revive
+    - unparam
+
+  exclusions:
+    rules:
+      # Test helpers are written for readability, so an argument a particular
+      # call does not use is not worth reporting.
+      - path: _test\.go
+        linters:
+          - unparam
