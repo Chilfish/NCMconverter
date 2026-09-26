@@ -22,17 +22,21 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      - name: Install make
+        # The Linux and macOS images ship make; the Windows image does not.
+        if: runner.os == 'Windows'
+        run: choco install make --yes --no-progress
       - name: Check formatting
-        # gofmt is the same everywhere, so one platform is enough, and the test
-        # idiom below is a POSIX shell one.
+        # gofmt is the same everywhere, so one platform is enough, and the
+        # check is a POSIX shell idiom.
         if: runner.os == 'Linux'
-        run: test -z "$(gofmt -l .)"
+        run: make fmt-check
       - name: Vet
-        run: go vet ./...
+        run: make vet
       - name: Test
-        run: go test -race ./...
+        run: make test-race
       - name: Build
-        run: go build ./...
+        run: make build
 
   coverage:
     name: Coverage
@@ -43,7 +47,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Test with coverage
-        run: go test -covermode=atomic -coverprofile=coverage.out ./...
+        run: make coverage
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
@@ -58,6 +62,8 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      # The action pins and installs golangci-lint itself, so this job does not
+      # go through the make target.
       - uses: golangci/golangci-lint-action@v9
         with:
           # Pinned so a new release cannot turn a green build red on its own.
