@@ -51,7 +51,7 @@
   - [x] `internal/app/integration_test.go`：合成容器 + 合成 `.lrc`，断言 USLT/Vorbis 字段存在。
   - [x] `internal/app/sample_test.go`：对真实 fixture 断言歌词已嵌入。
 - [x] 边界：空 `.lrc`、编码问题（UTF-8 BOM / GBK）。
-- [ ] 边界：超大歌词文件（尚未单独覆盖）。
+- [x] 边界：超大歌词文件（提交 fa91ee4；`internal/app/lyrics_test.go` 覆盖读取，`internal/app/integration_test.go` 覆盖 mp3/flac 的端到端嵌入回读）。
 
 ### 2. 跨平台构建与发布产物（提交 d4ea048、5c750eb）
 
@@ -60,7 +60,8 @@
 - [x] 引入 [GoReleaser](https://goreleaser.com/)，新增 `.goreleaser.yaml`：交叉编译上述平台、生成 `tar.gz`/`zip` 归档、`checksums.txt`、并附带 `LICENSE` 与 `README.md`。
 - [x] 新增 `.github/workflows/release.yml`：在 `v*` tag 上触发 `goreleaser release`。
 - [x] `main.version` 已可通过 `-ldflags` 注入（见 `Makefile`），确认 GoReleaser 传值一致（已同时注入 `commit` 与 `date`，`cmd/ncmconverter/main.go` 增加了对应变量）。
-- [ ] 可选：Homebrew tap / Scoop bucket / AUR；`nfpm` 生成 deb/rpm。
+- [x] nfpm 生成 deb/rpm（提交 7f6c351；Linux 的 amd64/arm64，二进制装到 `/usr/bin/ncmconverter`，快照发布已实测产出并校验包内容）。
+- [ ] 可选：Homebrew tap / Scoop bucket / AUR——各自需要独立的外部仓库与账号，留待发布后再定。
 - [x] CI 增加 OS 矩阵（`windows-latest`、`macos-latest`）跑 `go test`——本轮已在 Windows 上踩到文件句柄与临时文件差异，多平台跑测试很有价值。
 - [x] 确认产物命名与 `Windows` 的 `.exe` 后缀（本机已验证 `go build -o bin/` 会按平台补后缀，GoReleaser 快照构建也产出了 `.exe`）。
 
@@ -93,13 +94,13 @@
 
 - [x] 文件名是 `makefile`（小写）。约定俗成用 `Makefile`；在大小写不敏感的文件系统上需要 `git mv makefile Makefile` 才能让 git 记录改名。
 - [x] 补 `coverage` 目标（`go test -coverprofile`）。
-- [ ] CI 里可复用 `make` 目标，避免 workflow 与 Makefile 两处维护。
+- [x] CI 里复用 `make` 目标，避免 workflow 与 Makefile 两处维护（提交 86b83eb；`test`/`coverage` job 改跑 `make vet`/`make test-race`/`make build`/`make coverage`，Windows 镜像未预装 `make`，CI 里用 `choco install make` 补装。`lint` job 仍走 action，因为它自己负责锁定并安装 golangci-lint）。
 
 ### 6. 覆盖率与质量门禁（提交 5c750eb）
 
 - [x] 接入覆盖率（codecov 或 `go test -cover` + 上传 artifact）。（采用 `go test -coverprofile` + 上传 artifact，未接 codecov。）
 - [x] 在 CI 里锁定 `golangci-lint` 版本（当前用 `version: latest`，会有非预期升级）。（已锁定 v2.14.0。）
-- [ ] 考虑开 `-race` 之外的内存/泄漏检查（例如在测试里断言无残留临时文件）。
+- [x] 在测试里断言转换后无残留临时文件（提交 3634951，`internal/app/integration_test.go` 的 `TestRunLeavesNoTemporaryFiles`；覆盖 mp3/flac，带封面与歌词）。未接入内存/泄漏检查器。
 
 ---
 
