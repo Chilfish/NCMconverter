@@ -9,11 +9,13 @@
 | -------- | ---------------------------------------------------------------- |
 | 语言     | Go（版本以 [`../../go.mod`](../../go.mod) 为准）                  |
 | CLI      | `github.com/urfave/cli/v3`                                       |
+| 桌面     | `github.com/egoist/mygo` v0.5.1（纯 Go、无 cgo）+ TypeScript/Vite 前端 |
 | 并发     | `golang.org/x/sync/errgroup`                                     |
 | 编码     | `golang.org/x/text`（GBK）                                       |
 | mp3 标签 | `github.com/bogem/id3v2`                                         |
 | flac 标签| `github.com/go-flac/go-flac/v2` + `flacvorbis/v2` + `flacpicture/v2` |
-| 发布     | GoReleaser（+ nfpm）                                             |
+| 包管理   | bun（前端与 `mygo` CLI）                                          |
+| 发布     | `mygo build`（桌面与 CLI 共用一个二进制；取代 GoReleaser/nfpm）    |
 | 测试     | 标准 `go test`（含 `-race`）                                     |
 
 ---
@@ -72,7 +74,10 @@
 - **理由**: 把「继续处理」和「报告失败」解耦——错误聚合到切片，`Wait` 只用来接收取消。
 - **后果**: `Run` 返回的错误里含「N/M files failed」与 `errors.Join` 的明细；取消是唯一经由 `Wait` 冒泡的错误。详见 [../features/cli/cli-and-orchestration.md](../features/cli/cli-and-orchestration.md)。
 
-## ADR-008: GoReleaser + nfpm 发布平台矩阵
+## ADR-008: GoReleaser + nfpm 发布平台矩阵（**已被 [ADR-010](#adr-010-桌面应用与-cli-共用一个二进制mygo) 取代**）
+
+> 2026-10-15：发布链路改由 `mygo build` 驱动（桌面产物必须内嵌前端并设置 Windows GUI 子系统），
+> GoReleaser 与 nfpm 退役，`.goreleaser.yaml` 删除。本条保留作为历史决策与背景。
 
 - **日期**: 2026-09
 - **决策**: 用 GoReleaser 交叉编译 `linux`/`darwin`/`windows` × `amd64`/`arm64`，Windows 出 `zip`、其余出 `tar.gz`，Linux 另出 `deb`/`rpm`，并生成 `checksums.txt`。
@@ -87,3 +92,22 @@
 - **背景**: lint 曾用 `version: latest`，上游一次发布就可能把绿色构建改红。
 - **理由**: 单一事实来源（Makefile）降低漂移；锁定版本让红绿变化只由代码引起。
 - **后果**: 本地 golangci-lint 需与 CI 相同版本；新增/调整门禁时先改 Makefile。lint job 仍走 action（它自己负责安装与锁定）。
+
+## ADR-010: 桌面应用与 CLI 共用一个二进制（MyGo）
+
+- **日期**: 2026-10-15
+- **决策**: 用 [MyGo](https://github.com/egoist/mygo)（`github.com/egoist/mygo` v0.5.1，纯 Go、无 cgo）为项目加一个**桌面入口**，它与原 CLI **共用同一个可执行文件**：无参数启动即打开窗口，带参数即当前 CLI。桌面与 CLI 共用 `internal/app` 的编排，桌面通过新增的 `Options.OnFile` 回调获取逐文件进度；发布链路改由 `mygo build` 驱动（取代 [ADR-008](#adr-008-goreleaser--nfpm-发布平台矩阵已被-adr-010-取代)）。
+- **背景**:
+  - 项目此前只有批处理 CLI，普通用户门槛高；`backlog.md` 曾把 GUI 裁为「不接」，本次明确反转（定位扩展为「面向普通用户的转换器」，且不产生第二套转换逻辑）。
+  - 用户要求「同一个执行文件，既能打开为 desktop，也能作为 shell 调用」。
+  - MyGo 的 `mygo build` 通过 `go build -overlay` 把前端资源注入主包，并给 Windows 加 `-H=windowsgui`；这些是普通 `go build` 做不到的。
+- **理由**:
+  - MyGo 是纯 Go 包，`os.Args` 分支发生在 `App.Run()` 之前，CLI 路径完全不触碰 MyGo API，因此**单二进制不会给 headless/脚本场景引入 GUI 运行时依赖**（GTK/WebKitGTK 是运行时按需加载）。
+  - 复用 `internal/app` 保证「CLI 与桌面行为一字不差」；`app` 仍 UI 无关（不导入 mygo），依赖方向不破坏 [ADR-002](#adr-002-单向管线internal-全私有)。
+  - 发布只用一种产物家族，避免「同名但能力不同」的二进制并存。
+- **后果**:
+  - Windows 需要 `AttachConsole` 垫片才能让 GUI 子系统构建在终端里输出（`cmd/ncmconverter/console_windows.go`，仅标准库 `syscall`）。
+  - 二进制体积增加；Linux 的 deb 会带上 GTK/WebKitGTK 依赖（仅桌面模式需要）。作为单二进制的固有代价记录在 backlog。
+  - 发布产物形状变化：macOS `.app`+dmg、Windows exe+NSIS 安装器、Linux tar.gz（`install.sh`）+deb；**不再产出 rpm 与 `checksums.txt`**（跟进项记入 backlog）。
+  - `make build`（普通 `go build`）不再等同于发布产物：它没有内嵌前端，作为快速编译门禁保留；桌面开发与打包走 `mygo dev` / `mygo build`。
+  - 需求、设计与测试方案见 [../requirements/desktop/](../requirements/desktop/)。

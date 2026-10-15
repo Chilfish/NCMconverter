@@ -22,6 +22,20 @@ docs/requirements/<feature>/
 
 ## 现有功能级需求文档
 
-| 功能     | 目录                             |
-| -------- | -------------------------------- |
-| （暂无） | 首个复杂功能从下次需求开始建目录 |
+| 功能                                   | 目录                             | 状态                  |
+| -------------------------------------- | -------------------------------- | --------------------- |
+| 桌面应用（单二进制双模式，MyGo）        | [`desktop/`](desktop/)            | 已定稿，待实现        |
+
+### [`desktop/`](desktop/) 目录内容
+
+```
+docs/requirements/desktop/
+├── 01-requirements/PRD.md              # 目标、非目标、功能/非功能需求、验收标准、风险
+├── 01-requirements/user-stories.md     # 角色与用户故事（含反向故事）
+├── 02-design/architecture.md           # 结构、依赖方向、双模式入口、Windows 垫片、构建契约
+├── 02-design/api-contract.md           # 绑定 API 与生成的 TypeScript 表面
+├── 03-implementation/coding-standards.md
+├── 03-implementation/phased-plan.md    # 分阶段实施步骤（含提交划分与交付物清单）
+├── 04-testing/test-plan.md             # 新增测试、手工冒烟、映射表
+└── 05-review/design-decisions.md       # DD-1…DD-7（含被否方案与否决反转）
+```

@@ -67,6 +67,7 @@ docs/
 | **修改 flac 标签写入**                | [`features/tagging/flac-vorbis.md`](features/tagging/flac-vorbis.md)                                         | Vorbis comment 复用、自定义 `LYRICS`、picture、句柄   |
 | **修改标签门面 / 封面策略**           | [`features/tagging/tag.md`](features/tagging/tag.md)                                                         | `Tagger` 接口语义、封面三级策略、错误处理             |
 | **修改歌词读取与嵌入**                | [`features/lyrics/lyrics.md`](features/lyrics/lyrics.md)                                                     | `.lrc` 侧车、BOM/GBK、原样嵌入、超大文件              |
+| **桌面应用 / 双模式入口 / 绑定 API**  | [`requirements/desktop/`](requirements/desktop/)                                                             | 单二进制双模式、MyGo 绑定与前端、打包与发布（实现后同步到 `features/desktop/`） |
 | **修改 CLI 参数 / 编排 / 输出命名**   | [`features/cli/cli-and-orchestration.md`](features/cli/cli-and-orchestration.md)                             | flag 表、`--depth` 语义、并发与失败聚合、路径逃逸防护 |
 | **修改构建 / 发布 / CI**              | [`features/release/release-artifacts.md`](features/release/release-artifacts.md) + `../Makefile`             | GoReleaser、平台矩阵、deb/rpm、版本注入               |
 | **架构级变更前**                      | [`planning/architecture.md`](planning/architecture.md) + [`planning/project-architecture.md`](planning/project-architecture.md) | 先读 ADR 历史决策，再对照架构总览                     |
@@ -84,6 +85,7 @@ docs/
 | 系统架构总览（模块/数据流）  | [`planning/project-architecture.md`](planning/project-architecture.md) |
 | 架构决策记录（ADR）          | [`planning/architecture.md`](planning/architecture.md)     |
 | 未决任务清单（backlog）      | [`planning/backlog.md`](planning/backlog.md)               |
+| 复杂功能需求（PRD/用户故事/设计/测试计划） | [`requirements/README.md`](requirements/README.md) |
 | Go 代码规范                  | [`engineering/code-style.md`](engineering/code-style.md)   |
 | Git/Commit/PR 流程           | [`engineering/git-workflow.md`](engineering/git-workflow.md) |
 | 测试与验证                   | [`engineering/testing.md`](engineering/testing.md)         |

@@ -1,6 +1,6 @@
 # Backlog（未决任务清单）
 
-**最后更新**: 2026-09-27
+**最后更新**: 2026-10-15
 
 > 本清单**只保留当前未决的任务**，不累积已完成条目。历史完成记录见 [../archive/TODO.md](../archive/TODO.md)（v0.1.0 前的行动计划，已全部勾选或裁定）。
 
@@ -20,13 +20,22 @@
 - [ ] `[hardening]` **覆盖率无阈值门禁**：CI 目前只上传 `coverage.out` artifact，未设最低覆盖率门槛。可评估是否引入阈值或 codecov（关联：[../engineering/testing.md](../engineering/testing.md)）。
 - [ ] `[hardening]` **fixture 空跑守卫的推广**：`repositorySamples` 已做到「目录存在但无容器则失败」，可检查其它依赖外部素材的测试是否也需要同类守卫（关联：[postmortem 011](../postmortem/011-fixture-empty-run.md)）。
 
+## 桌面应用与发布（ADR-010 之后）
+
+- [ ] `[feat]` **`.ncm` 文件关联**：把 `.ncm` 关联到本应用，双击即打开桌面并加入队列。需要处理「页面就绪前到达的启动参数」（在 Go 侧缓冲、页面启动后取回），已从本次范围裁出（关联：[architecture.md §5](../requirements/desktop/02-design/architecture.md)）。
+- [ ] `[feat]` **自更新**：接入 `mygo.Updater` 的 `updates` 配置（签名密钥、发布托管、delta）。与单二进制双模式正交（关联：[ADR-010](architecture.md)）。
+- [ ] `[build]` **恢复 `checksums.txt` 与 rpm**：发布链路改由 `mygo build` 驱动后不再产出这两者。可在发布 job 里补 `sha256sum` 步骤与 rpm 生成（关联：[ADR-010](architecture.md)、[design-decisions DD-4](../requirements/desktop/05-review/design-decisions.md)）。
+- [ ] `[hardening]` **Linux 桌面运行时依赖策略**：单二进制让 deb 依赖 GTK/WebKitGTK，CLI-only 用户会被牵连安装。评估是否改 `Recommends` 或拆分产物（关联：[ADR-010](architecture.md)、[PRD §9](../requirements/desktop/01-requirements/PRD.md)）。
+- [ ] `[hardening]` **Windows 控制台垫片的回归**：`AttachConsole` 在 ConPTY/Windows Terminal 下的行为值得一次实机回归，并纳入发布 checklist 的功能冒烟（关联：[design §3.1](../requirements/desktop/02-design/architecture.md)）。
+
 ## 不做清单（裁决为删除/延后）
 
 | 条目                                             | 裁决           | 理由                                                                 |
 | ------------------------------------------------ | -------------- | -------------------------------------------------------------------- |
 | 支持 mp3/flac 之外的输出格式（如 ogg/m4a）       | 删除（不接）   | 容器内的音频本就只有这两种；转换到其它格式是转码，超出「容器解析」定位 |
 | 歌词的联网抓取 / 搜索                            | 删除（不接）   | 只消费本地同名 `.lrc`；联网会引入账号与风控面                        |
-| GUI / 常驻服务                                   | 删除（不接）   | 定位是批处理 CLI                                                     |
+| ~~GUI / 常驻服务~~                               | **撤销（2026-10-15）** | 原裁决为「删除（不接），定位是批处理 CLI」。现改为：**桌面应用已采纳**（[ADR-010](architecture.md)、[PRD](../requirements/desktop/01-requirements/PRD.md)）；但**托盘常驻与目录监听自动转换仍然不接**，与「批处理/整理」定位不符 |
+| 桌面应用内的音频播放                             | 删除（不接）   | 超出「转换器」定位，播放交给用户的播放器                             |
 
 ## 归档记录
 
