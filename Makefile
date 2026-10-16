@@ -12,8 +12,8 @@ COMMIT ?= $(shell git rev-parse HEAD || echo none)
 DATE ?= $(shell git log -1 --format=%cI || echo unknown)
 LDFLAGS := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
-.PHONY: all build install run test test-race coverage vet fmt fmt-check lint clean
-.PHONY: desktop generate typecheck
+.PHONY: all build install run test test-race coverage vet ui-vet fmt fmt-check lint clean
+.PHONY: dev desktop
 
 all: build
 
@@ -45,6 +45,12 @@ coverage:
 vet:
 	go vet ./...
 
+# ui-vet: run go vet and check the native UI build lifetimes, catching a
+# ui.Element kept in state, a closure or a goroutine. It is a Go tool, so it
+# needs no Node.
+ui-vet:
+	go tool mygo vet
+
 # fmt: format the tree
 fmt:
 	gofmt -w .
@@ -62,19 +68,13 @@ clean:
 	-rm -rf bin
 	-rm -f coverage.out
 
-# The desktop targets below need bun and the mygo CLI. They are kept apart from
-# the Go gates above, which stay free of any Node dependency.
+# The desktop targets below run the MyGo CLI, which the module keeps as a Go
+# tool, so they need no Node or bun. The Go gates above stay free of both.
 
-# desktop: build the packaged apps, frontend embedded, with mygo build
+# dev: run the desktop app, rebuilding it as the Go code changes
+dev:
+	go tool mygo dev
+
+# desktop: build the packaged app for this platform with mygo build
 desktop:
-	bun install --frozen-lockfile
-	bun run build
-
-# generate: write the TypeScript client from the Go bindings
-generate:
-	bun run generate
-
-# typecheck: check the page against the generated client
-typecheck:
-	bun install --frozen-lockfile
-	bun run typecheck
+	go tool mygo build

@@ -87,11 +87,11 @@
 
 ## US-8 开发体验（开发者）
 
-> 作为开发者，我要能热更新地改前端，并且类型与 Go 代码同源，以便少写错、少调试。
+> 作为开发者，我要用 Go 直接写界面、并且改动能即时生效，以便少写错、少调试。
 
-- `bun run dev` 启动开发应用，改前端即时生效。
-- 改 Go 的绑定方法/事件后，`bun run generate` 更新 `desktop/src/mygo.ts`；类型检查能发现调用不一致。
-- CI 校验 `desktop/src/mygo.ts` 与 Go 代码同步，防止漂移。
+- `go tool mygo dev`（`make dev`）在 Go 代码改动后重建并重启应用。
+- 界面用 Go 编写（MyGo 原生 UI），直接调用应用代码，因此**没有生成的客户端、也就没有类型漂移**。
+- 视图有无窗口的自动化测试（`ui.NewTester`，见 `internal/desktop/view_test.go`）。
 
 对应：NFR-3、AC-8。
 
@@ -99,7 +99,7 @@
 
 > 作为维护者，我要 tag 之后自动出三平台安装包，以便用户能装上。
 
-- tag 触发发布 workflow；macOS 出 dmg/`.app`，Windows 出 exe + 安装器，Linux 出 tar.gz + deb。
+- 试产与发布都用 `go tool mygo build`（`make desktop`）出包；tag 触发发布 workflow；macOS 出 dmg/`.app`，Windows 出 exe + 安装器，Linux 出 tar.gz + deb。
 - 缺签名密钥时不阻塞（ad-hoc 签名），有密钥时启用签名/公证。
 - 产物挂在对应 tag 的 Release 上。
 

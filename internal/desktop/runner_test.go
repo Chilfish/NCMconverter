@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/chilfish/ncmconverter/internal/ncmtest"
-	"github.com/egoist/mygo"
 )
 
 // frames returns deterministic audio bytes, easy to tell apart from tag data.
@@ -34,11 +33,6 @@ func container(t *testing.T, dir, name string, seed byte) string {
 	}
 	return path
 }
-
-// reports is what the page would pass: an empty channel. Sending to it fails
-// with ErrChannelClosed, which the service ignores, so the whole run works
-// without a window.
-func reports() *mygo.Channel[Report] { return &mygo.Channel[Report]{} }
 
 // namesIn returns the file names in dir with the given extension, sorted.
 func namesIn(t *testing.T, dir, ext string) []string {
@@ -71,13 +65,13 @@ func TestRunCountsEveryOutcome(t *testing.T) {
 		t.Fatalf("write bad container: %v", err)
 	}
 
-	c := &Converter{}
-	result, err := c.Run(context.Background(), Request{
+	r := &runner{}
+	result, err := r.convert(context.Background(), Request{
 		Inputs:       []string{dir},
 		Output:       output,
 		Threads:      2,
 		SkipExisting: true,
-	}, reports())
+	}, nil)
 	if err != nil {
 		t.Fatalf("run: %v", err)
 	}
@@ -91,36 +85,42 @@ func TestRunCountsEveryOutcome(t *testing.T) {
 }
 
 // TestRunReportsFileFailuresWithoutAnError locks the promise that a per-file
-// failure is visible in the summary rather than raised as a call error.
+// failure is visible in the reports rather than raised as a call error.
 func TestRunReportsFileFailuresWithoutAnError(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "bad.ncm"), []byte("not an ncm container at all"), 0o644); err != nil {
 		t.Fatalf("write bad container: %v", err)
 	}
 
-	c := &Converter{}
-	result, err := c.Run(context.Background(), Request{Inputs: []string{dir}, Threads: 1}, reports())
+	var seen []Report
+	r := &runner{}
+	result, err := r.convert(context.Background(), Request{Inputs: []string{dir}, Threads: 1}, func(report Report) {
+		seen = append(seen, report)
+	})
 	if err != nil {
 		t.Fatalf("Run returned an error for a per-file failure: %v", err)
 	}
 	if result.Failed != 1 {
 		t.Errorf("result = %+v, want one failure", result)
 	}
+	if len(seen) != 1 || seen[0].Err == "" {
+		t.Errorf("reports = %+v, want one report carrying the reason", seen)
+	}
 }
 
 // TestRunRejectsASecondRun locks single-flight: while a run is in flight,
 // another is refused.
 func TestRunRejectsASecondRun(t *testing.T) {
-	c := &Converter{}
+	r := &runner{}
 	// Hold the guard the way a run in progress does, so the test does not
 	// depend on timing a real run.
-	if _, cancel, err := c.begin(context.Background()); err != nil {
+	if _, release, err := r.begin(context.Background()); err != nil {
 		t.Fatalf("begin: %v", err)
 	} else {
-		defer c.finish(cancel)
+		defer r.finish(release)
 	}
 
-	if _, err := c.Run(context.Background(), Request{Threads: 1}, reports()); err == nil {
+	if _, err := r.convert(context.Background(), Request{Threads: 1}, nil); err == nil {
 		t.Fatal("Run accepted a second run, want an error")
 	}
 }
@@ -134,8 +134,8 @@ func TestRunNormalizesCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	c := &Converter{}
-	result, err := c.Run(ctx, Request{Inputs: []string{dir}, Threads: 1}, reports())
+	r := &runner{}
+	result, err := r.convert(ctx, Request{Inputs: []string{dir}, Threads: 1}, nil)
 	if err != nil {
 		t.Fatalf("Run returned an error for a cancellation: %v", err)
 	}
@@ -163,19 +163,19 @@ func TestScanMatchesWhatARunHandles(t *testing.T) {
 	}
 	container(t, deep, "deep.ncm", 0x46)
 
-	c := &Converter{}
-	scanned, err := c.Scan([]string{dir}, 1)
+	scanned, err := scan([]string{dir}, 1)
 	if err != nil {
 		t.Fatalf("scan: %v", err)
 	}
 
 	output := t.TempDir()
-	if _, err := c.Run(context.Background(), Request{
+	r := &runner{}
+	if _, err := r.convert(context.Background(), Request{
 		Inputs:  []string{dir},
 		Output:  output,
 		Depth:   1,
 		Threads: 1,
-	}, reports()); err != nil {
+	}, nil); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 
@@ -193,8 +193,8 @@ func TestScanMatchesWhatARunHandles(t *testing.T) {
 // TestRunRejectsNonPositiveThreads locks the promise that the thread count is
 // validated, as internal/app does.
 func TestRunRejectsNonPositiveThreads(t *testing.T) {
-	c := &Converter{}
-	if _, err := c.Run(context.Background(), Request{Inputs: []string{"unused"}, Threads: 0}, reports()); err == nil {
+	r := &runner{}
+	if _, err := r.convert(context.Background(), Request{Inputs: []string{"unused"}, Threads: 0}, nil); err == nil {
 		t.Fatal("Run with 0 threads succeeded, want an error")
 	}
 }

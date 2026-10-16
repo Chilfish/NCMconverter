@@ -4,7 +4,7 @@
 
 `cmd/ncmconverter` 只做参数解析与 `app.Options` 组装；真正的编排（收集文件、并发调度、输出命名、写文件）在 `internal/app`。
 
-> **入口是双模式的**：`main()` 看 `os.Args` 分支——**无参数即桌面**（`desktop.Run()` 打开窗口），**有参数即本文描述的 CLI**（`runCLI()`）；`mygo generate` 会带 `MYGO_GENERATE` 走桌面分支生成客户端。CLI 的参数名、默认值、日志文案与退出码都不受影响。桌面入口与绑定 API 见 [`features/desktop/desktop-app.md`](../desktop/desktop-app.md)。
+> **入口是双模式的**：`main()` 看 `os.Args` 分支——**无参数即桌面**（`desktop.Run()` 打开窗口），**有参数即本文描述的 CLI**（`runCLI()`）；MyGo 工具链会带 `MYGO_GENERATE` 跑同一份二进制，那种情况走桌面分支。CLI 的参数名、默认值、日志文案与退出码都不受影响。桌面入口与原生界面见 [`features/desktop/desktop-app.md`](../desktop/desktop-app.md)。
 
 ## 1. CLI 参数
 

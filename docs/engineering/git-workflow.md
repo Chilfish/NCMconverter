@@ -40,7 +40,7 @@
 ## 3. Pull Request
 
 1. 从 `main` 切分支（命名看得出主题）。
-2. 提交前本地跑通门禁：`make fmt-check vet test-race`（并确保 `make build` 通过）。
+2. 提交前本地跑通门禁：`make fmt-check vet ui-vet test-race`（并确保 `make build` 通过）。
 3. 按 [PR 模板](../../.github/PULL_REQUEST_TEMPLATE.md) 填写「做了什么 / 关联 issue / 检查清单」。
 4. 至少 1 人 Approve + CI 全绿后合并（Create a Merge Commit）。
 

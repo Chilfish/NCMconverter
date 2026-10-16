@@ -37,28 +37,32 @@
 
 **结论**：C。回调**在既有互斥锁内**调用，天然串行；`Run` 的签名与返回错误不变，CLI 与既有测试不受影响。
 
-**后果**：`app` 仍 UI 无关（不引入 mygo）；桌面侧把 `FileResult` 映射成 `Report` 推给页面。
+**后果**：`app` 仍 UI 无关（不引入 mygo）；桌面侧把 `FileResult` 映射成 `Report` 交给界面。
 
-## DD-3 界面用 web 前端，还是 MyGo 原生 UI？
+## DD-3 界面用 web 前端，还是 MyGo 原生 UI？（**已被 [ADR-011](../../../planning/architecture.md) 取代**）
 
-**决策**：**web 前端**（TypeScript + Vite），不用 MyGo 的 `package ui`。
+> 2026-10-16：原决策为 web 前端（方案 A），实践后**改为原生 UI**（方案 B）。理由与后果见 [DD-8](#dd-8-原生-ui-取代-web-前端推翻-dd-3)。本条保留作为历史决策与背景。
+
+**决策**：~~**web 前端**（TypeScript + Vite），不用 MyGo 的 `package ui`~~ → **改为 MyGo 原生 UI**。
 
 **备选**
 
 | 方案 | 优点 | 缺点 |
 | --- | --- | --- |
-| A. web 前端（采纳） | 表单/列表/日志这类界面用 HTML 写最快；已有可用实现；热更新开发体验好 | 需要 WebView 运行时（Linux 的 WebKitGTK）；打包体积略大 |
-| B. 原生 UI | 无 WebView 依赖、启动更快、内存更小 | 手写列表/表单/进度条成本高；无现成实现；迭代慢 |
+| A. web 前端（原采纳，后推翻） | 表单/列表/日志这类界面用 HTML 写最快；已有可用实现；热更新开发体验好 | 需要 WebView 运行时（Linux 的 WebKitGTK）；**实测观感不像原生、UX 差** |
+| B. 原生 UI（**现采纳**） | 无 WebView 依赖、启动更快、内存更小；控件与配色跟随系统主题，观感即原生 | 布局要用 Go 声明；但 MyGo 的 `Form`/`List`/`Sidebar` 等已足够覆盖本应用 |
 
-**结论**：A。本应用的界面是典型的「表单 + 列表 + 日志」，web 技术优势明显；`desktop/` 与 Go 代码的契约由 `mygo generate` 保证类型安全。
+**结论**：~~A~~ → **B**。见 [DD-8](#dd-8-原生-ui-取代-web-前端推翻-dd-3)。
 
-**后果**：Linux 桌面模式需要 GTK/WebKitGTK（CLI 模式不需要）。
+**后果**：Linux 桌面模式**只需要 GTK 3**（不再需要 WebKitGTK）；Windows 不再需要 WebView2 Runtime。
 
 ## DD-4 发布链路：`mygo build` 还是 GoReleaser？
 
 **决策**：发布改由 **`mygo build`** 驱动（矩阵 job），`GoReleaser` + `nfpm` 退役。
 
-**背景**：`mygo build` 用 `go build -overlay` 把前端注入主包，并设置 Windows GUI 子系统；普通 `go build`（GoReleaser 走的路径）产出的二进制**桌面打不开页面**。若保留 GoReleaser，就会出现「同名的 CLI 产物」与「桌面产物」并存。
+**背景**：`mygo build` 设置 Windows GUI 子系统并打包各平台安装器；普通 `go build`（GoReleaser 走的路径）没有这些。若保留 GoReleaser，就会出现「同名的 CLI 产物」与「桌面产物」并存。
+
+> 注：本条最初的理由还包含「内嵌前端」，该部分随 [DD-8](#dd-8-原生-ui-取代-web-前端推翻-dd-3) 失效——现在没有前端要内嵌，`mygo build` 的必要性只在 GUI 子系统与打包。
 
 **备选**
 
@@ -102,3 +106,27 @@
 | 自更新（`mygo.Updater`） | 延后（backlog） | 需要密钥体系与更新托管；与本次「单二进制双模式」正交 |
 | 托盘常驻 / 目录监听自动转换 | 不接 | 与「批处理/整理」定位不符 |
 | 界面内播放音频 | 不接 | 超出定位 |
+
+## DD-8 原生 UI 取代 web 前端（推翻 DD-3）
+
+**决策**：桌面的窗口界面改用 MyGo 的**原生 UI**（`github.com/egoist/mygo/ui`）在 Go 里声明，**推翻 [DD-3](#dd-3-界面用-web-前端还是-mygo-原生-ui已被-adr-011-取代)** 的 web 前端方案。据此删除 `desktop/`（HTML/TS/CSS）、`mygo.config.ts`、`package.json`、`tsconfig.json`、`vite.config.ts`、`bun.lock` 与绑定服务 `internal/desktop/service.go`，改为 `internal/desktop/{view,runner}.go` 与纯数据的 `mygo.json`；MyGo CLI 以 `go.mod` 的 tool 指令引入（`go tool mygo`）。架构级记录：[ADR-011](../../../planning/architecture.md)。
+
+**背景**：DD-3 的理由是「表单/列表/日志用 HTML 写最快」。实现出来后发现**观感不像原生应用**（自绘控件与系统控件不一致）、交互也单薄（看不出每个来源跑到哪一步）。而 MyGo 提供了完整的原生控件与主题体系，且原生视图能用 `ui.NewTester` 在无窗口下测试。
+
+**备选**
+
+| 方案 | 优点 | 缺点 |
+| --- | --- | --- |
+| A. 保留 web 前端，只用 CSS 模仿原生 | 改动最小 | 永远是「模仿」；仍背 WebView 运行时；系统强调色/字号/对比度要自己对齐 |
+| B. 原生 UI（采纳） | 控件与主题跟随系统；无 WebView；工具链去掉 Node/bun；界面可无窗口测试 | 布局用 Go 声明；需重做一遍界面 |
+| C. 两套界面并存 | 双保险 | 维护两份界面与两条工具链，收益不抵成本 |
+
+**结论**：B。理由：观感与交互直接由系统控件与主题决定，不需要用 CSS 去模仿原生；依赖链更短（Linux 只需 GTK 3、Windows 不需要 WebView2）；整条 Node/bun/Vite/生成客户端工具链消失；界面首次变得可自动化测试。
+
+**后果**：
+
+- 界面状态跨线程一律经 `Window.Update`；视图只在主线程读写状态（见 [编码规范 §5](../03-implementation/coding-standards.md) 与 [设计 §5.2](../02-design/architecture.md)）。
+- 绑定层消失（无 `mygo.Bind`/`Channel`/`NewEvent`/生成的 TS 客户端），`make generate`/`make typecheck` 目标删除，CI 不再校验生成物同步。
+- 新增无窗口的视图测试；[测试计划 §1](../04-testing/test-plan.md) 中「界面不写自动化测试」的结论被推翻。
+- Linux 桌面依赖由 GTK/WebKitGTK 收敛为 **GTK 3**，backlog 的「Linux 桌面运行时依赖策略」随之缓解（仍需 GTK）。
+- 随后又在此基础上重做了**转换队列的状态流转**（每个来源的阶段标记 + 运行状态卡 + 标题栏状态），见 [ui-design §4](../02-design/ui-design.md#4-转换队列的状态流转)。

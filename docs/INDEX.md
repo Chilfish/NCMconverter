@@ -9,7 +9,7 @@
 NCMconverter — 把网易云音乐的 `.ncm` 容器转换成可播放的 mp3 或 flac，并保留其中的元数据、封面与歌词。
 
 - **语言**：Go（版本以 [`go.mod`](../go.mod) 的 `go` 指令为准）｜ **CLI**：`urfave/cli/v3`
-- **桌面**：`github.com/egoist/mygo` v0.5.5（纯 Go、无 cgo）+ TypeScript/Vite 前端；同一个二进制无参数即桌面、有参数即 CLI
+- **桌面**：`github.com/egoist/mygo` v0.5.5（纯 Go、无 cgo）+ `mygo/ui` 原生 UI（Go、无 webview）；同一个二进制无参数即桌面、有参数即 CLI
 - **容器解析**：直接解析 `.ncm` 字节布局（最初参考 [yoki123/ncmdump](https://github.com/yoki123/ncmdump)）
 - **音频解密**：AES-128-ECB + XOR 掩码 + 256 字节密钥盒反混淆
 - **标签写入**：mp3 用 `bogem/id3v2`（ID3v2.4 + UTF-8）、flac 用 `go-flac/v2`（Vorbis comment + picture）
@@ -37,7 +37,7 @@ docs/
 │   ├── desktop/                   #   桌面应用与双模式入口（desktop-app.md）
 │   └── release/                   #   发布产物（release-artifacts.md）
 ├── planning/                      # 规划与决策
-│   ├── architecture.md            #   架构决策记录（ADR-001~010）
+│   ├── architecture.md            #   架构决策记录（ADR-001~011）
 │   ├── project-architecture.md    #   系统架构总览
 │   └── backlog.md                 #   未决任务清单
 ├── engineering/                   # 工程规范
@@ -70,7 +70,7 @@ docs/
 | **修改 flac 标签写入**                | [`features/tagging/flac-vorbis.md`](features/tagging/flac-vorbis.md)                                         | Vorbis comment 复用、自定义 `LYRICS`、picture、句柄   |
 | **修改标签门面 / 封面策略**           | [`features/tagging/tag.md`](features/tagging/tag.md)                                                         | `Tagger` 接口语义、封面三级策略、错误处理             |
 | **修改歌词读取与嵌入**                | [`features/lyrics/lyrics.md`](features/lyrics/lyrics.md)                                                     | `.lrc` 侧车、BOM/GBK、原样嵌入、超大文件              |
-| **桌面应用 / 双模式入口 / 绑定 API**  | [`features/desktop/desktop-app.md`](features/desktop/desktop-app.md) + [`requirements/desktop/`](requirements/desktop/) | 单二进制双模式、MyGo 绑定与前端、打包与发布；需求/设计/测试见 `requirements/desktop/` |
+| **桌面应用 / 双模式入口 / 原生 UI**  | [`features/desktop/desktop-app.md`](features/desktop/desktop-app.md) + [`requirements/desktop/`](requirements/desktop/) | 单二进制双模式、MyGo 原生 UI、打包与发布；需求/设计/测试见 `requirements/desktop/` |
 | **修改 CLI 参数 / 编排 / 输出命名**   | [`features/cli/cli-and-orchestration.md`](features/cli/cli-and-orchestration.md)                             | flag 表、`--depth` 语义、并发与失败聚合、路径逃逸防护 |
 | **修改构建 / 发布 / CI**              | [`features/release/release-artifacts.md`](features/release/release-artifacts.md) + `../Makefile`             | `mygo build` 矩阵、dmg/安装器/deb、版本注入、CI 门禁   |
 | **架构级变更前**                      | [`planning/architecture.md`](planning/architecture.md) + [`planning/project-architecture.md`](planning/project-architecture.md) | 先读 ADR 历史决策，再对照架构总览                     |
@@ -109,13 +109,13 @@ make test           # go test ./...
 make test-race      # go test -race ./...（CI 门禁）
 make coverage       # 写入 coverage.out
 make vet            # go vet ./...
+make ui-vet         # go tool mygo vet：另查原生 UI 的 build 生命周期
 make fmt            # gofmt -w .
 make fmt-check      # 只检查，不修改
 make lint           # 需要 golangci-lint v2（CI 锁定 v2.14.0）
 make clean          # 只删构建产物，不动音频与容器
-make desktop        # mygo build：内嵌前端并打包桌面产物（需要 bun）
-make generate       # 从 Go 绑定生成 desktop/src/mygo.ts
-make typecheck      # 用生成的客户端检查前端类型（需要 bun）
+make desktop        # mygo build：打包桌面产物（不需要 bun）
+make dev            # mygo dev：开发应用（改 Go 代码自动重启）
 ```
 
 其余命令的定义见 [`../Makefile`](../Makefile)，CI 步骤见 [`../.github/workflows/ci.yml`](../.github/workflows/ci.yml)。
@@ -153,7 +153,7 @@ make typecheck      # 用生成的客户端检查前端类型（需要 bun）
 
 ### 验证门禁（commit / PR 前）
 
-`make fmt-check` → `make vet` → `make test-race` → `make build`；CI 另跑 `make coverage` 与 `golangci-lint`。桌面改动另过 `make typecheck`（并校验 `desktop/src/mygo.ts` 与 Go 同步）与 `make desktop`（需 bun）。详见 [`engineering/git-workflow.md`](engineering/git-workflow.md)。
+`make fmt-check` → `make vet` → `make ui-vet` → `make test-race` → `make build`；CI 另跑 `make coverage` 与 `golangci-lint`。桌面改动另过 `make desktop`。详见 [`engineering/git-workflow.md`](engineering/git-workflow.md)。
 
 ---
 

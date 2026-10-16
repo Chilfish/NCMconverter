@@ -7,7 +7,7 @@
 | 层                    | 范围                                                          | 代表文件                                             |
 | --------------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
 | **单元**              | 纯函数与单包逻辑（AES、`Int64`、MIME、歌词解码、命名/深度）    | `aes_test.go`、`meta_test.go`、`mime_test.go`、`lyrics_test.go`、`app_test.go` |
-| **合成容器端到端**    | 用 `internal/ncmtest` 造容器/音频，真实跑一遍转换并逐字节校验  | `converter_test.go`、`app/integration_test.go`、`app/report_test.go`、`desktop/service_test.go`、`mp3_test.go`、`flac_test.go` |
+| **合成容器端到端**    | 用 `internal/ncmtest` 造容器/音频，真实跑一遍转换并逐字节校验  | `converter_test.go`、`app/integration_test.go`、`app/report_test.go`、`desktop/runner_test.go`、`mp3_test.go`、`flac_test.go` |
 | **真实 fixture 端到端** | 用 `testdata/` 的真实 `.ncm` 转换并断言标签/歌词/音频完整      | `app/sample_test.go`                                 |
 
 ## 2. `ncmtest` 的设计哲学（关键）
@@ -121,18 +121,28 @@ make lint          # golangci-lint v2
 | 无回调时行为不变                        | `report_test.go::TestRunWithoutACallbackStillSucceeds`      |
 | 真实 fixture 音频完整 + 标签           | `sample_test.go::TestRunConvertsTheRepositorySample`、`TestRunTagsTheConvertedFileFromTheRepositorySample` |
 
-### `internal/desktop`（`service_test.go`）
+### `internal/desktop`
 
-服务测试直接调 `Converter.Run`，用**零值** `&mygo.Channel[Report]{}` 作通道参数（`Send` 返回 `ErrChannelClosed`，服务端忽略该错误），因此**不需要窗口**即可跑通整条链路。
+`runner_test.go` 覆盖**无窗口**的转换内核：用 `internal/ncmtest` 造容器，直接驱动 `runner.convert`，用一个收集回调收下 `Report`，因此**不需要窗口**即可跑通整条链路。`view_test.go` 是**新增能力**：MyGo 的 `ui.NewTester` 在内存里渲染视图，用点击与 `HasText`/`Texts` 断言，把 UI 当普通单元测试跑——推翻仓库早年「桌面 UI 不做自动化测试」的立场（[ADR-011](../planning/architecture.md)）。
 
-| 行为                                   | 测试（文件）                                                |
-| -------------------------------------- | ----------------------------------------------------------- |
-| 三种结果的计数（转换/跳过/失败）        | `service_test.go::TestRunCountsEveryOutcome`                 |
-| 逐文件失败不升级为聚合错误              | `service_test.go::TestRunReportsFileFailuresWithoutAnError`  |
-| 单飞：运行中再次 `Run` 报错            | `service_test.go::TestRunRejectsASecondRun`                  |
-| 取消归一为 `Canceled`                   | `service_test.go::TestRunNormalizesCancellation`             |
-| `Scan` 与 `Run` 的集合一致（depth 语义）| `service_test.go::TestScanMatchesWhatARunHandles`            |
-| threads 校验透传                        | `service_test.go::TestRunRejectsNonPositiveThreads`          |
+| 行为                                     | 测试（文件）                                                |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| 三种结果的计数（转换/跳过/失败）         | `runner_test.go::TestRunCountsEveryOutcome`                 |
+| 逐文件失败不升级为聚合错误               | `runner_test.go::TestRunReportsFileFailuresWithoutAnError`  |
+| 单飞：运行中再次 `Run` 报错              | `runner_test.go::TestRunRejectsASecondRun`                  |
+| 取消归一为 `Canceled`                    | `runner_test.go::TestRunNormalizesCancellation`             |
+| `Scan` 与 `Run` 的集合一致（depth 语义） | `runner_test.go::TestScanMatchesWhatARunHandles`            |
+| threads 校验透传                         | `runner_test.go::TestRunRejectsNonPositiveThreads`          |
+| 侧栏三个分区（转换队列/选项/日志）       | `view_test.go::TestViewShowsTheSections`                    |
+| 队列为空时显示拖放提示                   | `view_test.go::TestViewShowsTheDropHintWhenTheQueueIsEmpty` |
+| 空日志给出占位                           | `view_test.go::TestViewShowsTheEmptyLog`                    |
+| 队列列出已添加的路径                     | `view_test.go::TestViewShowsTheQueue`                       |
+| 同一路径只入队一次                       | `view_test.go::TestViewAddsAPathOnlyOnce`                   |
+| 日志显示每个文件的结果                   | `view_test.go::TestViewShowsTheRunOutcomes`                 |
+| 队列区显示汇总                           | `view_test.go::TestViewShowsTheSummary`                     |
+| 汇总文案组装                             | `view_test.go::TestSummarize`                               |
+| 结果标签文案                             | `view_test.go::TestOutcomeLabels`                           |
+| 分区标题文案                             | `view_test.go::TestSectionTitles`                           |
 
 ## 7. 真实 fixture 的处理
 

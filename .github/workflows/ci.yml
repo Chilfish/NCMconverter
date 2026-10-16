@@ -33,6 +33,10 @@ jobs:
         run: make fmt-check
       - name: Vet
         run: make vet
+      - name: Native UI lifetimes
+        # MyGo's own vet, which also catches a ui.Element kept in state, a
+        # closure or a goroutine. It is a Go tool, so it needs no Node.
+        run: make ui-vet
       - name: Test
         run: make test-race
       - name: Build
@@ -67,21 +71,15 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: oven-sh/setup-bun@v2
-      - name: Install the frontend dependencies
-        run: bun install --frozen-lockfile
-      - name: Check the page against the generated client
-        run: make typecheck
-      - name: Check the generated client is in sync
-        # Making the client is deterministic, so a diff means someone edited
-        # the Go bindings without regenerating it. One platform is enough.
-        if: runner.os == 'Linux'
-        run: |
-          make generate
-          git diff --exit-code -- desktop/src/mygo.ts
+      - name: Install make
+        # The Linux and macOS images ship make; the Windows image does not.
+        if: runner.os == 'Windows'
+        run: choco install make --yes --no-progress
       - name: Build the packaged app
-        # mygo build embeds the frontend and packages the app for this
-        # platform, proving every platform can produce an installable artifact.
+        # mygo build compiles the app, whose window shows native UI drawn by
+        # Go, and packages it for this platform, proving every platform can
+        # produce an installable artifact. There is no frontend build, so this
+        # needs neither Node nor bun.
         run: make desktop
 
   lint:

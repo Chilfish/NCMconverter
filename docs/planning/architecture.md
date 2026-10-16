@@ -9,14 +9,14 @@
 | -------- | ---------------------------------------------------------------- |
 | 语言     | Go（版本以 [`../../go.mod`](../../go.mod) 为准）                  |
 | CLI      | `github.com/urfave/cli/v3`                                       |
-| 桌面     | `github.com/egoist/mygo` v0.5.5（纯 Go、无 cgo）+ TypeScript/Vite 前端 |
+| 桌面     | `github.com/egoist/mygo` v0.5.5（纯 Go、无 cgo）+ `mygo/ui` 原生 UI（无 webview） |
 | 并发     | `golang.org/x/sync/errgroup`                                     |
 | 编码     | `golang.org/x/text`（GBK）                                       |
 | mp3 标签 | `github.com/bogem/id3v2`                                         |
 | flac 标签| `github.com/go-flac/go-flac/v2` + `flacvorbis/v2` + `flacpicture/v2` |
-| 包管理   | bun（前端与 `mygo` CLI）                                          |
+| 工具链   | `go tool mygo`（`go.mod` 的 tool 指令；无 Node/bun）              |
 | 发布     | `mygo build`（桌面与 CLI 共用一个二进制；取代 GoReleaser/nfpm）    |
-| 测试     | 标准 `go test`（含 `-race`）                                     |
+| 测试     | 标准 `go test`（含 `-race`；视图测试用 `ui.NewTester`）           |
 
 ---
 
@@ -76,7 +76,8 @@
 
 ## ADR-008: GoReleaser + nfpm 发布平台矩阵（**已被 [ADR-010](#adr-010-桌面应用与-cli-共用一个二进制mygo) 取代**）
 
-> 2026-10-15：发布链路改由 `mygo build` 驱动（桌面产物必须内嵌前端并设置 Windows GUI 子系统），
+> 2026-10-15：发布链路改由 `mygo build` 驱动（桌面产物必须设置 Windows GUI 子系统并打包安装器，
+> 前端形态见 [ADR-011](#adr-011-桌面界面改用-mygo-原生-ui)），
 > GoReleaser 与 nfpm 退役，`.goreleaser.yaml` 删除。本条保留作为历史决策与背景。
 
 - **日期**: 2026-09
@@ -100,14 +101,33 @@
 - **背景**:
   - 项目此前只有批处理 CLI，普通用户门槛高；`backlog.md` 曾把 GUI 裁为「不接」，本次明确反转（定位扩展为「面向普通用户的转换器」，且不产生第二套转换逻辑）。
   - 用户要求「同一个执行文件，既能打开为 desktop，也能作为 shell 调用」。
-  - MyGo 的 `mygo build` 通过 `go build -overlay` 把前端资源注入主包，并给 Windows 加 `-H=windowsgui`；这些是普通 `go build` 做不到的。
+  - MyGo 的 `mygo build` 给 Windows 加 `-H=windowsgui` 并打包各平台安装器；这些是普通 `go build` 做不到的。界面形态见 [ADR-011](#adr-011-桌面界面改用-mygo-原生-ui)。
 - **理由**:
-  - MyGo 是纯 Go 包，`os.Args` 分支发生在 `App.Run()` 之前，CLI 路径完全不触碰 MyGo API，因此**单二进制不会给 headless/脚本场景引入 GUI 运行时依赖**（GTK/WebKitGTK 是运行时按需加载）。
+  - MyGo 是纯 Go 包，`os.Args` 分支发生在 `App.Run()` 之前，CLI 路径完全不触碰 MyGo API，因此**单二进制不会给 headless/脚本场景引入 GUI 运行时依赖**（GTK 3 是运行时按需加载）。
   - 复用 `internal/app` 保证「CLI 与桌面行为一字不差」；`app` 仍 UI 无关（不导入 mygo），依赖方向不破坏 [ADR-002](#adr-002-单向管线internal-全私有)。
   - 发布只用一种产物家族，避免「同名但能力不同」的二进制并存。
 - **后果**:
   - Windows 需要 `AttachConsole` 垫片才能让 GUI 子系统构建在终端里输出（`cmd/ncmconverter/console_windows.go`，仅标准库 `syscall`）。
-  - 二进制体积增加；Linux 的 deb 会带上 GTK/WebKitGTK 依赖（仅桌面模式需要）。作为单二进制的固有代价记录在 backlog。
+  - 二进制体积增加；Linux 的 deb 会带上 GTK 3 依赖（仅桌面模式需要）。作为单二进制的固有代价记录在 backlog。
   - 发布产物形状变化：macOS `.app`+dmg、Windows exe+NSIS 安装器、Linux tar.gz（`install.sh`）+deb；**不再产出 rpm 与 `checksums.txt`**（跟进项记入 backlog）。
-  - `make build`（普通 `go build`）不再等同于发布产物：它没有内嵌前端，作为快速编译门禁保留；桌面开发与打包走 `mygo dev` / `mygo build`。
+  - `make build`（普通 `go build`）不再等同于发布产物：它不做 GUI 子系统与安装器打包，作为快速编译门禁保留；桌面开发与打包走 `go tool mygo dev` / `go tool mygo build`。
   - 需求、设计与测试方案见 [../requirements/desktop/](../requirements/desktop/)。
+
+## ADR-011: 桌面界面改用 MyGo 原生 UI
+
+- **日期**: 2026-10-16
+- **决策**: 桌面的窗口界面用 MyGo 的 **原生 UI**（`github.com/egoist/mygo/ui`，Go 直接声明、GPU 绘制）实现，**取代** [ADR-010](#adr-010-桌面应用与-cli-共用一个二进制mygo) 当时选定的 web 前端方案（原 [design-decisions DD-3](../requirements/desktop/05-review/design-decisions.md)）。据此删除 `desktop/`（HTML/TS/CSS）、`mygo.config.ts`、`package.json`、`tsconfig.json`、`vite.config.ts`、`bun.lock`，改为 Go 视图（`internal/desktop/view.go`）与 `mygo.json`；MyGo CLI 以 `go.mod` 的 **tool 指令**引入，工具链变为 `go tool mygo`。
+- **背景**:
+  - ADR-010 的选择理由是「表单/列表/日志用 HTML 写最快」。实测下来，web 前端产出的界面**不像原生应用**（自绘的按钮/表单/进度条与系统控件观感不一致），UX 也差。
+  - MyGo 自带完整的原生控件与主题体系：`ui.Form`/`Field`/`Fieldset`、`ui.List`、`ui.Sidebar`、`ui.Toolbar`、`ui.Badge`、`ui.Progress`/`Spinner`、`ui.Switch`，主题跟随系统外观/强调色/字号/对比度，并支持隐藏标题栏（`TitleBarHiddenInset` + `Context.TitleBar` + `DragWindow`）与窗口材质（`Vibrancy`，macOS 全量、Windows 11 Mica/Acrylic）。
+  - 原生 UI 的视图能在**没有窗口**的情况下由 `ui.NewTester` 驱动，因此界面第一次变得可自动化测试。
+- **理由**:
+  - 观感与交互直接由系统控件与主题决定，跟随系统设置，不需要用 CSS 去模仿原生。
+  - 依赖链更短、体积更小：**不再需要 WebView**——Linux 只需 GTK 3（不再需要 WebKitGTK），Windows 不再需要 WebView2 Runtime。
+  - 不再需要 Node/bun/Vite/生成客户端这一整条工具链；配置从需要 JS 运行时求值的 `mygo.config.ts` 简化为纯数据 `mygo.json`。
+- **后果**:
+  - 界面从「HTML 布局 + CSS」变为 Go 视图代码；状态变化跨线程一律经 `Window.Update`，视图本身只在主线程读写状态。
+  - 绑定层消失（不再有 `mygo.Bind`/`Channel`/`NewEvent`/生成的 TS 客户端），因此 CI 不再校验生成物同步，`make generate`/`make typecheck` 目标删除。
+  - 新增视图测试（`ui.NewTester`，无窗口）；[engineering/testing.md](../engineering/testing.md) 的「桌面不写 UI 测试」结论被推翻。
+  - Linux 桌面依赖由 GTK/WebKitGTK 收敛为 **GTK 3**，backlog 的「Linux 桌面运行时依赖策略」随之缓解（仍需 GTK）。
+  - 需求、设计与测试方案同步更新：[PRD](../requirements/desktop/01-requirements/PRD.md)、[设计](../requirements/desktop/02-design/architecture.md)、[UI 设计](../requirements/desktop/02-design/ui-design.md)、[DD-3](../requirements/desktop/05-review/design-decisions.md)。

@@ -10,7 +10,6 @@ build/
 *.dylib
 
 # Desktop app tooling and artifacts
-node_modules/
 .mygo/
 cmd/ncmconverter/mygo_windows_*.syso
 
@@ -36,3 +35,4 @@ cmd/ncmconverter/mygo_windows_*.syso
 # Local tooling settings
 .commandcode/settings.json
 *.mp3
+node_modules/

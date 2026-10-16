@@ -1,16 +1,17 @@
 # 分阶段实施计划
 
-> 关联：[PRD](../01-requirements/PRD.md)｜[设计](../02-design/architecture.md)｜[API 契约](../02-design/api-contract.md)｜[测试计划](../04-testing/test-plan.md)
+> 关联：[PRD](../01-requirements/PRD.md)｜[设计](../02-design/architecture.md)｜[UI 设计](../02-design/ui-design.md)｜[测试计划](../04-testing/test-plan.md)
 > 前置参考实现：工作区 `I:\dev\mygo-app`（**已在 Windows 跑通**：窗口、拖拽入队、逐文件进度、取消、打开输出目录、中文界面）。本文标注「可搬运」的文件可直接对照搬运，其余按上游结构重写。
+
+> **历史记录**：本文记录的是第一版实现（web 前端，HTML/TypeScript + Vite）**实际执行**的过程，不是现行计划。界面其后已用 MyGo 原生 UI 重建——见 [ADR-011](../../../planning/architecture.md) 与新的 [UI 设计](../02-design/ui-design.md)，**定义性功能文档以那里为准**。当前工作流是 `go tool mygo dev` / `go tool mygo build`（不需要 bun）。
 
 ## 0. 环境准备
 
 ```sh
 go version            # 需 1.27+（引入 mygo 后会要求 1.27.2，以 go.mod 为准）
-bun --version         # 前端与 mygo CLI 的运行时
 ```
 
-依赖：`github.com/egoist/mygo v0.5.5`（纯 Go，无 cgo）；前端 `mygo-runtime`、`mygo-cli`、`typescript`、`vite`（版本与 MyGo 官方模板一致）。
+依赖：`github.com/egoist/mygo v0.5.5`（纯 Go，无 cgo）；不需要前端依赖（`mygo-runtime`/`typescript`/`vite` 随 web 前端一并移除），MyGo CLI 以 `go tool mygo` 运行。
 
 **开工前先读**（按 [`../../../INDEX.md`](../../../INDEX.md) 的导航）：
 
@@ -153,10 +154,7 @@ bun --version         # 前端与 mygo CLI 的运行时
 make fmt-check vet test-race build
 go test ./internal/... -race
 
-bun install
-bun run typecheck
-bun run generate && git diff --exit-code -- desktop/src/mygo.ts
-bun run build                    # mygo build：产出 dist/ 下的安装包
+go tool mygo build               # mygo build：产出 dist/ 下的安装包
 ```
 
 ### 5.2 双模式冒烟（Windows 实测含控制台附加）

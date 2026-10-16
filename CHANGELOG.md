@@ -6,16 +6,16 @@
 
 ### Added
 
-- 桌面应用（单二进制双模式）：同一个 `ncmconverter` 无参数启动即打开窗口，带参数仍是原来的命令行工具。窗口支持添加文件/文件夹、拖拽入队、逐文件进度（已转换/已跳过/失败）、取消与「打开输出目录」，并可设置全部 CLI 选项（输出目录、命名模板、`depth`、`threads`、写标签、跳过已存在、试运行）。基于 [MyGo](https://github.com/egoist/mygo)（纯 Go、无 cgo），与 CLI 共用同一套转换逻辑。
+- 桌面应用（单二进制双模式）：同一个 `ncmconverter` 无参数启动即打开窗口，带参数仍是原来的命令行工具。窗口用 [MyGo](https://github.com/egoist/mygo)（纯 Go、无 cgo）的**原生 UI**（`github.com/egoist/mygo/ui`）由 Go 直接绘制——没有网页、没有 webview、没有绑定层。界面是 **转换队列 / 选项 / 日志** 三段侧栏：队列里拖拽入队或点按钮添加文件/文件夹、每个来源显示自己的阶段（待处理 / 转换中 / 已转换 / 失败 / 无 .ncm / 路径不可用）、逐文件进度（已转换/已跳过/失败）、取消与「打开输出目录」；选项覆盖全部 CLI 开关（输出目录、命名模板、`depth`、`threads`、写标签、跳过已存在、试运行）。与 CLI 共用同一套转换逻辑。
 - Windows 控制台垫片：GUI 子系统构建从终端调用时仍能正常输出（`AttachConsole`）。
-- `internal/app` 增加逐文件回调 `Options.OnFile` 并导出 `Scan`，供桌面展示进度与预览工作量；新增 `internal/desktop` 绑定服务，前端类型由 `mygo generate` 生成并提交。
+- `internal/app` 增加逐文件回调 `Options.OnFile` 并导出 `Scan`，供桌面展示进度与预览工作量；桌面逻辑放在 `internal/desktop`（`app.go` 状态与装配、`view.go` 原生 UI 视图、`runner.go` 无窗口转换内核），**没有绑定层，也没有生成的客户端**。
 
 ### Changed
 
 - 发布链路从 GoReleaser/nfpm 改为 `mygo build`：删除 `.goreleaser.yaml`，产物变为 macOS `.app`+`dmg`、Windows `exe`+NSIS 安装器、Linux `tar.gz`（含 `install.sh`）+`deb`。**不再产出 `rpm` 与 `checksums.txt`**（恢复办法见 backlog 跟进项）。
-- `make build` 不再等同发布产物：它是普通 `go build`，**不内嵌前端**，桌面模式打不开页面；桌面开发与打包改走 `mygo dev` / `mygo build`（`make desktop`）。
-- CI 增加三平台桌面对应 job（`bun install` + `make typecheck` + 校验生成的 `desktop/src/mygo.ts` + `make desktop`）；Go 门禁仍不依赖 bun。
-- Linux 的 `deb` 会声明依赖 GTK/WebKitGTK（仅桌面模式需要）；命令行模式不受影响。
+- `make build` 不再等同发布产物：它是普通 `go build`，**不带 GUI 子系统、也不打包安装器**；桌面开发与打包改走 `mygo dev` / `mygo build`（`make desktop`）。
+- CI 增加三平台桌面对应 job（`make desktop`，无需 bun、无需 typecheck、无需校验生成物）；Go 门禁同样不依赖 Node/bun。
+- 桌面运行时依赖收敛：Linux 的 `deb` 只声明依赖 **GTK 3**（仅桌面模式需要；原生 UI 不再需要 WebKitGTK），Windows 也不再需要 WebView2 Runtime；命令行模式不受影响。
 
 ## [0.1.0] - 2026-09-27
 

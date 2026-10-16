@@ -76,28 +76,26 @@ ncmconverter [options] <files/dirs>   # 带参数：命令行（行为与上文�
 ncmconverter                          # 无参数：打开桌面窗口
 ```
 
-窗口里可以添加文件/文件夹，或直接把 `.ncm` 拖进去；运行时会实时显示每个文件的「已转换 / 已跳过 / 失败」并给出汇总，可随时「取消」或「打开输出目录」。界面里能设置上面 CLI 的全部选项（输出目录、命名模板、`depth`、`threads`、写标签、跳过已存在、试运行）。桌面与命令行**共用同一套转换逻辑**，因此 CLI 的参数名、默认值、日志与退出码完全不受影响。
+窗口是 Go 绘制的**原生界面**（无 webview），左侧栏分为「转换队列 / 选项 / 日志」三区。窗口里可以添加文件/文件夹，或直接把 `.ncm` 拖进去；运行时会实时显示每个文件的「已转换 / 已跳过 / 失败」并给出汇总，可随时「取消」或「打开输出目录」。界面里能设置上面 CLI 的全部选项（输出目录、命名模板、`depth`、`threads`、写标签、跳过已存在、试运行）。桌面与命令行**共用同一套转换逻辑**，因此 CLI 的参数名、默认值、日志与退出码完全不受影响。
 
 ### 开发与打包
 
-桌面与前端需要 [bun](https://bun.sh/) 与 [MyGo](https://github.com/egoist/mygo)：
+桌面窗口是 [MyGo](https://github.com/egoist/mygo) 的**原生 UI**，界面由 Go 代码绘制、直接跑在 GPU 上，没有 webview、没有 HTML/JS，因此不需要 bun/Node。开发用 `make dev`，打包用 `make desktop`：
 
 ```sh
-bun install
-bun run dev          # mygo dev：热更新的开发应用
-bun run generate     # 从 Go 绑定生成 desktop/src/mygo.ts
-bun run build        # mygo build：内嵌前端并打包发布产物（等价于 make desktop）
+make dev             # go tool mygo dev：开发应用，改动 Go 代码即重建
+make desktop         # go tool mygo build：打包发布产物
 ```
 
-`make build` 只是普通的 `go build`，**不会内嵌前端**——它的二进制用于命令行，桌面模式打不开页面；桌面开发与打包请走 `bun run dev` / `bun run build`。打包产物：macOS 出 `.app` 与 `dmg`，Windows 出 `exe` 与 NSIS 安装器，Linux 出 `tar.gz`（含 `install.sh`）与 `deb`。
+MyGo 由 `go.mod` 的 tool 指令提供，以 `go tool mygo` 调用，不需要 Node/bun。`make build` 只是普通的 `go build`，作为最快的编译/CLI 门禁；桌面的开发与打包都走 `go tool mygo`。打包产物：macOS 出 `.app` 与 `dmg`，Windows 出 `exe` 与 NSIS 安装器，Linux 出 `tar.gz`（含 `install.sh`）与 `deb`。
 
 ### 平台要求
 
-- **Windows**：桌面模式依赖系统自带的 WebView2 Runtime。
-- **Linux**：**桌面模式需要 GTK 与 WebKitGTK**（打包出的 `deb` 会声明该依赖）；命令行模式不需要图形库，服务器/CI/Docker 上直接用 CLI 是安全的。
-- **macOS**：使用系统 WebKit。
+- **Windows**：不再需要 WebView2 Runtime，窗口由 Go 直接绘制。
+- **Linux**：**桌面模式只需要 GTK 3**（不再需要 WebKitGTK，打包出的 `deb` 会声明该依赖）；命令行模式不需要图形库，服务器/CI/Docker 上直接用 CLI 是安全的。
+- **macOS**：原生窗口，系统自带框架即可，无需额外依赖。
 
-更多细节（目录布局、双模式入口、绑定 API、构建契约）见 [`docs/features/desktop/desktop-app.md`](docs/features/desktop/desktop-app.md)；需求、设计与测试方案见 [`docs/requirements/desktop/`](docs/requirements/desktop/)。
+更多细节（目录布局、双模式入口、原生 UI、构建契约）见 [`docs/features/desktop/desktop-app.md`](docs/features/desktop/desktop-app.md)；需求、设计与测试方案见 [`docs/requirements/desktop/`](docs/requirements/desktop/)。
 
 ## 开发
 
@@ -108,8 +106,8 @@ make coverage      # 写入 coverage.out
 make vet
 make fmt-check
 make lint          # 需要 golangci-lint v2
-make desktop       # mygo build：打包桌面产物（需要 bun）
-make typecheck     # 用生成的客户端检查前端类型（需要 bun）
+make dev           # go tool mygo dev：开发桌面应用
+make desktop       # go tool mygo build：打包桌面产物
 ```
 
 ### 测试
@@ -124,8 +122,7 @@ make typecheck     # 用生成的客户端检查前端类型（需要 bun）
 | --- | --- |
 | `cmd/ncmconverter` | 命令行与桌面入口（双模式）。 |
 | `internal/app` | 编排：转换哪些文件、并发多少。 |
-| `internal/desktop` | 桌面绑定服务与 MyGo 应用装配。 |
-| `desktop/` | 桌面应用的 web 前端（TypeScript + Vite）。 |
+| `internal/desktop` | 原生 UI 桌面应用（视图、装配与转换内核）。 |
 | `internal/ncm` | 容器解析。 |
 | `internal/converter` | 解密与元数据解码。 |
 | `internal/tag` | 向 mp3 与 flac 写入标签。 |
