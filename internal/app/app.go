@@ -39,6 +39,11 @@ type Options struct {
 	// SkipExisting leaves a destination that already exists untouched instead
 	// of overwriting it. The file counts as handled, not as a failure.
 	SkipExisting bool
+	// OnFile, when set, is called once for every container the run handles,
+	// with how it was handled: planned during a dry run, converted, skipped
+	// or failed. Calls are serialized, so an implementation may update shared
+	// state without a lock of its own. It does not replace the logging.
+	OnFile func(FileResult)
 }
 
 // Run converts every .ncm file reachable from the configured inputs.
@@ -51,7 +56,7 @@ func Run(ctx context.Context, opts Options) error {
 		return fmt.Errorf("threads must be at least 1, got %d", opts.Threads)
 	}
 
-	sources, err := collect(opts.Inputs, opts.Depth)
+	sources, err := Scan(opts.Inputs, opts.Depth)
 	if err != nil {
 		return err
 	}
@@ -62,6 +67,7 @@ func Run(ctx context.Context, opts Options) error {
 	if opts.DryRun {
 		for _, source := range sources {
 			slog.Info("would convert", "file", source)
+			report(opts, FileResult{Source: source, Outcome: OutcomePlanned})
 		}
 		return nil
 	}
@@ -78,19 +84,21 @@ func Run(ctx context.Context, opts Options) error {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			wasSkipped, err := convert(ctx, source, opts)
-			if err != nil {
+			result, err := convert(ctx, source, opts)
+			// The callback runs under the lock so that its calls are
+			// serialized, which lets a caller accumulate the results without
+			// guarding them itself.
+			mu.Lock()
+			defer mu.Unlock()
+			switch {
+			case err != nil:
 				slog.Error("conversion failed", "file", source, "err", err)
-				mu.Lock()
+				result.Outcome, result.Err = OutcomeFailed, err
 				failures = append(failures, fmt.Errorf("%s: %w", source, err))
-				mu.Unlock()
-				return nil
-			}
-			if wasSkipped {
-				mu.Lock()
+			case result.Outcome == OutcomeSkipped:
 				skipped++
-				mu.Unlock()
 			}
+			report(opts, result)
 			return nil
 		})
 	}
@@ -107,9 +115,20 @@ func Run(ctx context.Context, opts Options) error {
 	return nil
 }
 
-// collect expands the given paths into the .ncm files they hold, skipping
+// report hands one container's result to the run's caller, when it asked for
+// them.
+func report(opts Options, result FileResult) {
+	if opts.OnFile != nil {
+		opts.OnFile(result)
+	}
+}
+
+// Scan expands the given paths into the .ncm files they hold, skipping
 // duplicates when inputs overlap.
-func collect(inputs []string, depth int) ([]string, error) {
+//
+// It applies the same traversal as a run, so a caller can show the work a run
+// would do before starting one.
+func Scan(inputs []string, depth int) ([]string, error) {
 	seen := make(map[string]struct{})
 	sources := make([]string, 0, len(inputs))
 

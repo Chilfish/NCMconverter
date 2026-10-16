@@ -16,12 +16,14 @@ import (
 )
 
 // convert decodes one container and writes the audio, and optionally the tags,
-// to disk. It reports whether the destination was left alone because it
-// already existed.
-func convert(ctx context.Context, source string, opts Options) (skipped bool, err error) {
+// to disk. It reports how the container was handled: converted, or skipped when
+// the destination already existed and was left alone.
+func convert(ctx context.Context, source string, opts Options) (FileResult, error) {
+	result := FileResult{Source: source}
+
 	file, err := ncm.Open(source)
 	if err != nil {
-		return false, err
+		return result, err
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
@@ -30,47 +32,50 @@ func convert(ctx context.Context, source string, opts Options) (skipped bool, er
 	}()
 
 	if err := file.Parse(); err != nil {
-		return false, err
+		return result, err
 	}
 
 	decoded := converter.NewConverter(file)
 	if err := decoded.HandleAll(); err != nil {
-		return false, err
+		return result, err
 	}
 
 	dest, err := outputPath(opts.Output, file, decoded.MetaData, decoded.MetaData.Format, opts.OutputTemplate)
 	if err != nil {
-		return false, err
+		return result, err
 	}
+	result.Dest = dest
 	if opts.SkipExisting {
 		switch _, err := os.Stat(dest); {
 		case err == nil:
 			slog.Info("skipping a file that already exists", "source", source, "dest", dest)
-			return true, nil
+			result.Outcome = OutcomeSkipped
+			return result, nil
 		case !errors.Is(err, fs.ErrNotExist):
-			return false, fmt.Errorf("inspect %s: %w", dest, err)
+			return result, fmt.Errorf("inspect %s: %w", dest, err)
 		}
 	}
 
 	if err := writeFile(dest, decoded.MusicData); err != nil {
-		return false, err
+		return result, err
 	}
 	slog.Info("converted container", "source", source, "dest", dest)
+	result.Outcome = OutcomeConverted
 
 	if !opts.Tag {
-		return false, nil
+		return result, nil
 	}
 
 	// The lyrics live in a sidecar beside the container, because the format
 	// itself has no room for them.
 	lyrics, err := readLyrics(source)
 	if err != nil {
-		return false, err
+		return result, err
 	}
 	if err := tag.WriteTo(ctx, dest, decoded.Cover.Bytes, decoded.MetaData, lyrics); err != nil {
-		return false, fmt.Errorf("tag %s: %w", dest, err)
+		return result, fmt.Errorf("tag %s: %w", dest, err)
 	}
-	return false, nil
+	return result, nil
 }
 
 // outputPath places the converted file in output, or beside its source when
