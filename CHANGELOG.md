@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-16
+
 ### Added
 
 - 桌面应用（单二进制双模式）：同一个 `ncmconverter` 无参数启动即打开窗口，带参数仍是原来的命令行工具。窗口用 [MyGo](https://github.com/egoist/mygo)（纯 Go、无 cgo）的**原生 UI**（`github.com/egoist/mygo/ui`）由 Go 直接绘制——没有网页、没有 webview、没有绑定层。界面是 **转换队列 / 选项 / 日志** 三段侧栏：队列里拖拽入队或点按钮添加文件/文件夹、每个来源显示自己的阶段（待处理 / 转换中 / 已转换 / 失败 / 无 .ncm / 路径不可用）、逐文件进度（已转换/已跳过/失败）、取消与「打开输出目录」；选项覆盖全部 CLI 开关（输出目录、命名模板、`depth`、`threads`、写标签、跳过已存在、试运行）。与 CLI 共用同一套转换逻辑。
@@ -16,6 +18,10 @@
 - `make build` 不再等同发布产物：它是普通 `go build`，**不带 GUI 子系统、也不打包安装器**；桌面开发与打包改走 `mygo dev` / `mygo build`（`make desktop`）。
 - CI 增加三平台桌面对应 job（`make desktop`，无需 bun、无需 typecheck、无需校验生成物）；Go 门禁同样不依赖 Node/bun。
 - 桌面运行时依赖收敛：Linux 的 `deb` 只声明依赖 **GTK 3**（仅桌面模式需要；原生 UI 不再需要 WebKitGTK），Windows 也不再需要 WebView2 Runtime；命令行模式不受影响。
+
+### Fixed
+
+- Windows 打包产物（GUI 子系统）的 `--version` / `--dry-run` 等输出，在**重定向**时不再丢失：控制台垫片改为只接管「没有自己句柄」的标准流，`ncmconverter --dry-run > list.txt` 会照常写入文件。
 
 ## [0.1.0] - 2026-09-27
 
@@ -36,7 +42,8 @@
 - `--depth` 语义变更（**破坏性**）：以前 `--depth 0` 传目录等于什么都不做，现在表示"只处理该目录下的直接子文件"。`--deepth`、`--thread` 仍作为别名可用。
 - `--version` 现在同时输出构建时的 commit 与时间，便于定位运行中的二进制。
 
-[Unreleased]: https://github.com/Chilfish/NCMconverter/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Chilfish/NCMconverter/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Chilfish/NCMconverter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Chilfish/NCMconverter/releases/tag/v0.1.0
 
 [kac]: https://keepachangelog.com/zh-CN/1.1.0/

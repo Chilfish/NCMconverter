@@ -26,7 +26,8 @@
 - [ ] `[feat]` **自更新**：接入 `mygo.Updater` 的 `updates` 配置（签名密钥、发布托管、delta）。与单二进制双模式正交（关联：[ADR-010](architecture.md)）。
 - [ ] `[build]` **恢复 `checksums.txt` 与 rpm**：发布链路改由 `mygo build` 驱动后不再产出这两者。可在发布 job 里补 `sha256sum` 步骤与 rpm 生成（关联：[ADR-010](architecture.md)、[design-decisions DD-4](../requirements/desktop/05-review/design-decisions.md)）。
 - [ ] `[hardening]` **Linux 桌面运行时依赖策略**：改用原生 UI 后（[ADR-011](architecture.md)），deb 只依赖 **GTK 3**（原生 UI 不再需要 WebKitGTK），顾虑大为减轻；但 GTK 仍会为 CLI-only 用户牵连安装，是否改 `Recommends` 或拆分产物仍待评估（关联：[ADR-011](architecture.md)、[ADR-010](architecture.md)、[PRD §9](../requirements/desktop/01-requirements/PRD.md)）。
-- [ ] `[hardening]` **Windows 控制台垫片的回归**：`AttachConsole` 在 ConPTY/Windows Terminal 下的行为值得一次实机回归，并纳入发布 checklist 的功能冒烟（关联：[design §3.1](../requirements/desktop/02-design/architecture.md)）。
+- [ ] `[hardening]` **Windows 控制台垫片的回归**：`AttachConsole` 在 ConPTY/Windows Terminal 下的行为值得一次实机回归，并纳入发布 checklist 的功能冒烟（关联：[design §3.1](../requirements/desktop/02-design/architecture.md)）。已修一处：垫片改为只接管「没有自己句柄」的流，重定向（`ncmconverter --dry-run > list.txt`）不再被丢掉。
+- [ ] `[build]` **打包产物的 `--version` 报 `dev`**：`mygo build` 不注入 `main.version`/`commit`/`date`，只把 `mygo.json` 的版本链进 MyGo 自己的元数据，所以发布产物的 CLI `--version` 显示 `dev (commit none, built unknown)`（`make build`/`go install` 的产物不受影响）。`mygo build` 没有 ldflags 透传，可选：用 `debug.ReadBuildInfo()` 的 `vcs.revision`/`vcs.time` 兜底（拿得到 commit/date，版本号仍是 `(devel)`），或向上游要一个 ldflags 开关（关联：[release-checklist](../engineering/release-checklist.md#发布产物试产mygo-build)）。
 - [ ] `[feat]` **桌面原生 UI 的窗口尺寸/布局打磨**（关联：[ADR-011](architecture.md)、[ui-design.md](../requirements/desktop/02-design/ui-design.md)）。
 
 ## 不做清单（裁决为删除/延后）
