@@ -75,24 +75,24 @@ func TestFindNCMIgnoresUppercaseExtensionsCaseInsensitively(t *testing.T) {
 	}
 }
 
-func TestCollectSkipsDuplicates(t *testing.T) {
+func TestScanSkipsDuplicates(t *testing.T) {
 	root := t.TempDir()
 	source := filepath.Join(root, "song.ncm")
 	mustWrite(t, source)
 
-	got, err := collect([]string{source, root}, 0)
+	got, err := Scan([]string{source, root}, 0)
 	if err != nil {
-		t.Fatalf("collect: %v", err)
+		t.Fatalf("scan: %v", err)
 	}
 	if len(got) != 1 {
-		t.Fatalf("collect returned %d paths, want 1: %v", len(got), got)
+		t.Fatalf("scan returned %d paths, want 1: %v", len(got), got)
 	}
 }
 
-func TestCollectReportsMissingInputs(t *testing.T) {
+func TestScanReportsMissingInputs(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "absent.ncm")
-	if _, err := collect([]string{missing}, 0); err == nil {
-		t.Fatal("collect succeeded on a missing input, want an error")
+	if _, err := Scan([]string{missing}, 0); err == nil {
+		t.Fatal("scan succeeded on a missing input, want an error")
 	}
 }
 

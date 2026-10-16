@@ -4,6 +4,8 @@
 
 `cmd/ncmconverter` 只做参数解析与 `app.Options` 组装；真正的编排（收集文件、并发调度、输出命名、写文件）在 `internal/app`。
 
+> **入口是双模式的**：`main()` 看 `os.Args` 分支——**无参数即桌面**（`desktop.Run()` 打开窗口），**有参数即本文描述的 CLI**（`runCLI()`）；MyGo 工具链会带 `MYGO_GENERATE` 跑同一份二进制，那种情况走桌面分支。CLI 的参数名、默认值、日志文案与退出码都不受影响。桌面入口与原生界面见 [`features/desktop/desktop-app.md`](../desktop/desktop-app.md)。
+
 ## 1. CLI 参数
 
 | flag                | 别名          | 默认值 | 说明                                                       |
@@ -20,10 +22,12 @@
 
 `main.go` 用 `slog` 输出到 stderr，日志级别用 `slog.LevelVar` 持有——`--quiet` 在参数解析后（`Action` 内）才生效。无输入参数直接报错。`signal.NotifyContext(os.Interrupt)` 提供取消源。
 
-## 2. 收集：`collect` 与 `findNCM`
+## 2. 收集：`Scan` 与 `findNCM`
 
-- `collect(inputs, depth)`：逐个 `os.Stat`。文件直接加入；目录走 `findNCM`。用 `seen` map 去重（输入重叠时不重复转换）。
+- `Scan(inputs, depth)`（**导出**，原 `collect`）：逐个 `os.Stat`。文件直接加入；目录走 `findNCM`。用 `seen` map 去重（输入重叠时不重复转换）。导出它是因为界面要在开跑前展示工作量——`internal/desktop` 的 `Converter.Scan` 就是它的转发。
 - `findNCM(dir, depth)`：递归读目录，**大小写不敏感**地匹配 `.ncm`（`strings.EqualFold(filepath.Ext(...), ".ncm")`）。递归语义：`depth <= 0` 不再下探；每进一层 `depth-1`。因此 `--depth 0` = 只处理直接子文件。
+
+> `Scan` 与 `Run` 走**同一套遍历**，所以「试运行/预览列出的文件数」与「真正会处理的文件数」必然一致（`internal/desktop` 有测试锁定这一点）。
 
 > `--depth 0` 传目录的语义是**破坏性变更**：旧行为等于什么都不做，新行为表示「只处理该目录的直接子文件」（见 `CHANGELOG.md`）。
 
@@ -39,7 +43,15 @@
 6. `group.Wait()`：唯一能到这里的是**取消**。
 7. 有失败 → 返回 `fmt.Errorf("%d of %d files failed: %w", …, errors.Join(failures...))`，进程最终以非零退出。
 
-`convert(ctx, source, opts)` 的单文件流程：`ncm.Open`（`defer Close`）→ `Parse` → `converter.NewConverter(...).HandleAll()` → `outputPath` → `SkipExisting` 判定（命中则返回 `skipped=true`，算「已处理」而非失败）→ `writeFile` → `--tag` 时读歌词并 `tag.WriteTo`。
+`convert(ctx, source, opts) (FileResult, error)` 的单文件流程：`ncm.Open`（`defer Close`）→ `Parse` → `converter.NewConverter(...).HandleAll()` → `outputPath`（算出后立刻填进 `FileResult.Dest`）→ `SkipExisting` 判定（命中则填 `OutcomeSkipped`，算「已处理」而非失败）→ `writeFile`（成功填 `OutcomeConverted`）→ `--tag` 时读歌词并 `tag.WriteTo`。既有的 `slog` 调用（`converted container`、`skipping a file that already exists`、`conversion failed`、`converted files`）全部保留，CLI 输出不变。
+
+### 3.1 逐文件回调 `Options.OnFile`
+
+除日志外，`Run` 在处理完每个容器后还会调用 `Options.OnFile`（若设置），传一个 `FileResult{Source, Dest, Outcome, Err}`：试运行逐文件回调 `OutcomePlanned`，成功 `OutcomeConverted`（`Dest` 是真正落盘的路径），跳过 `OutcomeSkipped`，失败 `OutcomeFailed`（带 `Err`）。常量定义在 [`internal/app/report.go`](../../../internal/app/report.go)。
+
+- 回调在 `Run` **已持有的互斥锁内**调用，因此天然串行，调用方累加计数时无需自己加锁（`-race` 下安全）。
+- 回调是**纯附加**的：`OnFile == nil` 时行为与从前完全一致，它也不替代既有 `slog` 输出。
+- `Run` 的签名与返回错误不变（仍是 `error`），计数由调用方按回调自行累加。CLI 不传回调；桌面用它做逐文件进度与汇总。
 
 ## 4. 输出命名与安全
 
@@ -69,8 +81,10 @@
 | ------------------------------------------- | ----------------------------------------------------------------- |
 | `--depth` 0/1/2/超深 的语义                 | `app_test.go::TestFindNCMHonoursDepth`                            |
 | `.NCM` 大写扩展名也匹配                     | `app_test.go::TestFindNCMIgnoresUppercaseExtensionsCaseInsensitively` |
-| 输入重叠时去重                              | `app_test.go::TestCollectSkipsDuplicates`                         |
-| 缺失输入报错                                | `app_test.go::TestCollectReportsMissingInputs`                    |
+| 输入重叠时去重                              | `app_test.go::TestScanSkipsDuplicates`                            |
+| 缺失输入报错                                | `app_test.go::TestScanReportsMissingInputs`                       |
+| 逐文件回调：试运行/成功/跳过/失败           | `report_test.go::TestRunReports*`                                 |
+| 无回调时行为不变                            | `report_test.go::TestRunWithoutACallbackStillSucceeds`            |
 | threads ≤ 0 报错                            | `app_test.go::TestRunRejectsNonPositiveThreads`                   |
 | 无匹配容器时成功返回                        | `app_test.go::TestRunWithNoMatchesSucceeds`                       |
 | dry-run 完全不写盘                          | `options_test.go::TestRunDryRunWritesNothing`                     |
@@ -87,7 +101,8 @@
 ## 关键文件
 
 - [`cmd/ncmconverter/main.go`](../../../cmd/ncmconverter/main.go) — flag 定义、logger、版本打印、`app.Run` 调用
-- [`internal/app/app.go`](../../../internal/app/app.go) — `Options`、`Run`、`collect`、`findNCM`
+- [`internal/app/app.go`](../../../internal/app/app.go) — `Options`（含 `OnFile`）、`Run`、`Scan`、`findNCM`、`report`
+- [`internal/app/report.go`](../../../internal/app/report.go) — `Outcome` 常量与 `FileResult`
 - [`internal/app/convert.go`](../../../internal/app/convert.go) — `convert`、`outputPath`、`renderName`、`sanitizeName`、`writeFile`
 
 ## 相关测试 / postmortem

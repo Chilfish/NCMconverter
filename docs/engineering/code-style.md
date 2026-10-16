@@ -16,15 +16,17 @@
 ## 2. 包组织
 
 ```
-cmd/ncmconverter/    # 唯一入口：flag → app.Options → app.Run
-internal/app/        # 编排（Options、Run、collect/findNCM、convert、outputPath、lyrics.go）
+cmd/ncmconverter/    # 唯一入口：双模式分支 → runCLI（flag → app.Options → app.Run）/ desktop.Run
+internal/app/        # 编排（Options、OnFile、Run、Scan/findNCM、convert、outputPath、lyrics.go）
+internal/desktop/    # 原生 UI 桌面应用（app.go 装配 / view.go 视图 / runner.go 转换内核）
 internal/ncm/        # 容器解析（ncm.go 布局、reader.go、errors.go）
 internal/converter/  # 解密与解码（converter.go、aes.go、meta.go）
 internal/tag/        # 标签门面（tag.go、mime.go）+ mp3/ + flac/
 internal/ncmtest/    # 测试用合成容器构造器
 ```
 
-- **单向依赖**：只允许 `app → {ncm, converter, tag}`、`tag → converter`（复用 `Meta` 与格式常量），不允许反向或成环。
+- **单向依赖**：只允许 `app → {ncm, converter, tag}`、`tag → converter`（复用 `Meta` 与格式常量），以及 `desktop → app` 与 `desktop → mygo`，不允许反向或成环。
+- **`internal/app` 不得导入 mygo（或 `internal/desktop`）**：它是 UI 无关的编排层，桌面通过纯 Go 回调 `Options.OnFile` 接入，不把 mygo 的类型塞进 `Options`。`internal/desktop` 会导入 mygo，所以桌面与 CLI 共用的二进制也链接 mygo——这是单二进制双模式的必然结果（[ADR-010](../planning/architecture.md)）。
 - **`internal/` 一律私有**：这是格式实现的自由空间，也是[ADR-002](../planning/architecture.md) 的约束。
 - 新增能力优先落到既有包；只有当某格式的标签逻辑继续膨胀时，才在 `internal/tag/` 下再开子包。
 

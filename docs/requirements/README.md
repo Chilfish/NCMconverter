@@ -10,7 +10,7 @@
 docs/requirements/<feature>/
 ├── 01-requirements/PRD.md
 ├── 01-requirements/user-stories.md
-├── 02-design/architecture.md · api-contract.md
+├── 02-design/architecture.md · ui-design.md
 ├── 03-implementation/coding-standards.md · phased-plan.md
 ├── 04-testing/test-plan.md
 ├── 05-review/design-decisions.md
@@ -24,7 +24,7 @@ docs/requirements/<feature>/
 
 | 功能                                   | 目录                             | 状态                  |
 | -------------------------------------- | -------------------------------- | --------------------- |
-| 桌面应用（单二进制双模式，MyGo）        | [`desktop/`](desktop/)            | 已定稿，待实现        |
+| 桌面应用（单二进制双模式，MyGo）        | [`desktop/`](desktop/)            | 已实现（领域文档：[`../features/desktop/desktop-app.md`](../features/desktop/desktop-app.md)） |
 
 ### [`desktop/`](desktop/) 目录内容
 
@@ -33,7 +33,7 @@ docs/requirements/desktop/
 ├── 01-requirements/PRD.md              # 目标、非目标、功能/非功能需求、验收标准、风险
 ├── 01-requirements/user-stories.md     # 角色与用户故事（含反向故事）
 ├── 02-design/architecture.md           # 结构、依赖方向、双模式入口、Windows 垫片、构建契约
-├── 02-design/api-contract.md           # 绑定 API 与生成的 TypeScript 表面
+├── 02-design/ui-design.md              # 原生 UI 的布局、组件、状态与线程模型
 ├── 03-implementation/coding-standards.md
 ├── 03-implementation/phased-plan.md    # 分阶段实施步骤（含提交划分与交付物清单）
 ├── 04-testing/test-plan.md             # 新增测试、手工冒烟、映射表

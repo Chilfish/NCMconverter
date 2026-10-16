@@ -40,7 +40,7 @@
 ## 3. Pull Request
 
 1. 从 `main` 切分支（命名看得出主题）。
-2. 提交前本地跑通门禁：`make fmt-check vet test-race`（并确保 `make build` 通过）。
+2. 提交前本地跑通门禁：`make fmt-check vet ui-vet test-race`（并确保 `make build` 通过）。
 3. 按 [PR 模板](../../.github/PULL_REQUEST_TEMPLATE.md) 填写「做了什么 / 关联 issue / 检查清单」。
 4. 至少 1 人 Approve + CI 全绿后合并（Create a Merge Commit）。
 
@@ -70,9 +70,9 @@
 
 1. 从 `main` 创建 `release/x.y.z` 分支。
 2. 更新 `CHANGELOG.md`（把 Unreleased 归入新版本并加日期）。
-3. 按 [`release-checklist.md`](release-checklist.md) 过本地门禁与快照试产。
+3. 按 [`release-checklist.md`](release-checklist.md) 过本地门禁与 `mygo build` 试产。
 4. 合并回 `main`。
 5. 在 `main` 上打 tag：`git tag vX.Y.Z && git push origin vX.Y.Z`。
-6. GitHub Actions 的 `release.yml` 调用 GoReleaser 产出各平台归档、deb/rpm 与 `checksums.txt` 并创建 Release。
+6. GitHub Actions 的 `release.yml` 先建草稿 Release，再用 `mygo build` 的三平台矩阵产出 dmg / NSIS 安装器 / deb / tar.gz 并上传。
 
 > **tag 只打在门禁绿的 commit 上**；版本号严格递增，禁止回退。

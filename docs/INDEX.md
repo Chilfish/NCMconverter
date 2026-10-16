@@ -9,11 +9,12 @@
 NCMconverter — 把网易云音乐的 `.ncm` 容器转换成可播放的 mp3 或 flac，并保留其中的元数据、封面与歌词。
 
 - **语言**：Go（版本以 [`go.mod`](../go.mod) 的 `go` 指令为准）｜ **CLI**：`urfave/cli/v3`
+- **桌面**：`github.com/egoist/mygo` v0.5.5（纯 Go、无 cgo）+ `mygo/ui` 原生 UI（Go、无 webview）；同一个二进制无参数即桌面、有参数即 CLI
 - **容器解析**：直接解析 `.ncm` 字节布局（最初参考 [yoki123/ncmdump](https://github.com/yoki123/ncmdump)）
 - **音频解密**：AES-128-ECB + XOR 掩码 + 256 字节密钥盒反混淆
 - **标签写入**：mp3 用 `bogem/id3v2`（ID3v2.4 + UTF-8）、flac 用 `go-flac/v2`（Vorbis comment + picture）
 - **并发**：`golang.org/x/sync/errgroup`（`SetLimit` 限流）
-- **发布**：GoReleaser 交叉编译 linux/darwin/windows × amd64/arm64，附 deb/rpm
+- **发布**：`mygo build` 交叉编译 linux/darwin/windows，产物为 dmg / NSIS 安装器 / tar.gz + deb（不再产出 rpm 与 `checksums.txt`）
 - **验证**：`go test` 三层（单元 / 合成容器端到端 / 真实 fixture 端到端），合成容器由独立的 `internal/ncmtest` 构造
 
 > ⚠️ **未校验字段**：容器 `metaEnd` 处的 4 字节并**不是** meta 段的 CRC32（实测与 `hash/crc32` 三种算法都对不上），因此**故意不校验**；`metaEnd+5` 处的 reserved 字段实测等于 cover 长度。详见 [`planning/project-architecture.md`](planning/project-architecture.md) §2 与 [`features/container/container-format.md`](features/container/container-format.md)。
@@ -33,9 +34,10 @@ docs/
 │   ├── tagging/                   #   标签写入（tag.md · mp3-id3.md · flac-vorbis.md）
 │   ├── lyrics/                    #   歌词侧车（lyrics.md）
 │   ├── cli/                       #   命令行与编排（cli-and-orchestration.md）
+│   ├── desktop/                   #   桌面应用与双模式入口（desktop-app.md）
 │   └── release/                   #   发布产物（release-artifacts.md）
 ├── planning/                      # 规划与决策
-│   ├── architecture.md            #   架构决策记录（ADR-001~009）
+│   ├── architecture.md            #   架构决策记录（ADR-001~011）
 │   ├── project-architecture.md    #   系统架构总览
 │   └── backlog.md                 #   未决任务清单
 ├── engineering/                   # 工程规范
@@ -46,7 +48,8 @@ docs/
 ├── postmortem/                    # 尸检报告（写码前必读，README + 12 篇）
 ├── reviews/                       # 代码审查记录（review-YYYY-MM-DD-<主题>.md）
 ├── development-log/               # 开发日志（按天记录 YYYY-MM-DD.md）
-├── requirements/                  # 复杂功能需求文档（PRD / 用户故事）
+├── requirements/                  # 复杂功能需求文档（PRD / 用户故事 / 设计 / 测试计划）
+│   └── desktop/                   #   桌面应用（单二进制双模式）
 └── archive/                       # 历史规划归档（TODO.md 等，不主动读取）
 ```
 
@@ -67,15 +70,15 @@ docs/
 | **修改 flac 标签写入**                | [`features/tagging/flac-vorbis.md`](features/tagging/flac-vorbis.md)                                         | Vorbis comment 复用、自定义 `LYRICS`、picture、句柄   |
 | **修改标签门面 / 封面策略**           | [`features/tagging/tag.md`](features/tagging/tag.md)                                                         | `Tagger` 接口语义、封面三级策略、错误处理             |
 | **修改歌词读取与嵌入**                | [`features/lyrics/lyrics.md`](features/lyrics/lyrics.md)                                                     | `.lrc` 侧车、BOM/GBK、原样嵌入、超大文件              |
-| **桌面应用 / 双模式入口 / 绑定 API**  | [`requirements/desktop/`](requirements/desktop/)                                                             | 单二进制双模式、MyGo 绑定与前端、打包与发布（实现后同步到 `features/desktop/`） |
+| **桌面应用 / 双模式入口 / 原生 UI**  | [`features/desktop/desktop-app.md`](features/desktop/desktop-app.md) + [`requirements/desktop/`](requirements/desktop/) | 单二进制双模式、MyGo 原生 UI、打包与发布；需求/设计/测试见 `requirements/desktop/` |
 | **修改 CLI 参数 / 编排 / 输出命名**   | [`features/cli/cli-and-orchestration.md`](features/cli/cli-and-orchestration.md)                             | flag 表、`--depth` 语义、并发与失败聚合、路径逃逸防护 |
-| **修改构建 / 发布 / CI**              | [`features/release/release-artifacts.md`](features/release/release-artifacts.md) + `../Makefile`             | GoReleaser、平台矩阵、deb/rpm、版本注入               |
+| **修改构建 / 发布 / CI**              | [`features/release/release-artifacts.md`](features/release/release-artifacts.md) + `../Makefile`             | `mygo build` 矩阵、dmg/安装器/deb、版本注入、CI 门禁   |
 | **架构级变更前**                      | [`planning/architecture.md`](planning/architecture.md) + [`planning/project-architecture.md`](planning/project-architecture.md) | 先读 ADR 历史决策，再对照架构总览                     |
 | **规划下一阶段任务**                  | [`planning/backlog.md`](planning/backlog.md)                                                                 | 未决任务清单                                          |
 | **测试 / 验证体系**                   | [`engineering/testing.md`](engineering/testing.md)                                                           | 三层测试、`ncmtest` 哲学、行为→测试映射表             |
 | **写码前防复现 / 新 Bug 模式**        | [`postmortem/README.md`](postmortem/README.md)                                                               | 高频雷区自查；新 Bug 模式写 postmortem                |
 | **每次 commit / PR**                  | [`engineering/git-workflow.md`](engineering/git-workflow.md)                                                 | 分支模型、Conventional Commits、审查清单              |
-| **里程碑发布前**                      | [`engineering/release-checklist.md`](engineering/release-checklist.md)                                       | 本地门禁 + 快照试产 + 发布前已知尾巴                  |
+| **里程碑发布前**                      | [`engineering/release-checklist.md`](engineering/release-checklist.md)                                       | 本地门禁 + `mygo build` 试产 + 发布前已知尾巴         |
 | **了解历史决策 / 已知问题**           | [`reviews/`](reviews/) + [`development-log/`](development-log/) + [`archive/`](archive/)                     | 审查记录、按天日志、已完成阶段存档                    |
 
 ### 按文档类型速查
@@ -106,10 +109,13 @@ make test           # go test ./...
 make test-race      # go test -race ./...（CI 门禁）
 make coverage       # 写入 coverage.out
 make vet            # go vet ./...
+make ui-vet         # go tool mygo vet：另查原生 UI 的 build 生命周期
 make fmt            # gofmt -w .
 make fmt-check      # 只检查，不修改
 make lint           # 需要 golangci-lint v2（CI 锁定 v2.14.0）
 make clean          # 只删构建产物，不动音频与容器
+make desktop        # mygo build：打包桌面产物（不需要 bun）
+make dev            # mygo dev：开发应用（改 Go 代码自动重启）
 ```
 
 其余命令的定义见 [`../Makefile`](../Makefile)，CI 步骤见 [`../.github/workflows/ci.yml`](../.github/workflows/ci.yml)。
@@ -125,7 +131,7 @@ make clean          # 只删构建产物，不动音频与容器
 ```
 需求/规划   docs/requirements/ · docs/planning/（architecture ADR · project-architecture · backlog）
 工程规范    docs/engineering/（code-style · git-workflow · testing · release-checklist）
-功能文档    docs/features/<子系统>/（container · converter · metadata · tagging · lyrics · cli · release）
+功能文档    docs/features/<子系统>/（container · converter · metadata · tagging · lyrics · cli · desktop · release）
 反馈闭环    docs/postmortem/ · docs/reviews/ · docs/development-log/
 存档        docs/archive/（已完成阶段的历史记录，不主动读取）
 ```
@@ -147,7 +153,7 @@ make clean          # 只删构建产物，不动音频与容器
 
 ### 验证门禁（commit / PR 前）
 
-`make fmt-check` → `make vet` → `make test-race` → `make build`；CI 另跑 `make coverage` 与 `golangci-lint`。详见 [`engineering/git-workflow.md`](engineering/git-workflow.md)。
+`make fmt-check` → `make vet` → `make ui-vet` → `make test-race` → `make build`；CI 另跑 `make coverage` 与 `golangci-lint`。桌面改动另过 `make desktop`。详见 [`engineering/git-workflow.md`](engineering/git-workflow.md)。
 
 ---
 

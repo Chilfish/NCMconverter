@@ -33,6 +33,10 @@ jobs:
         run: make fmt-check
       - name: Vet
         run: make vet
+      - name: Native UI lifetimes
+        # MyGo's own vet, which also catches a ui.Element kept in state, a
+        # closure or a goroutine. It is a Go tool, so it needs no Node.
+        run: make ui-vet
       - name: Test
         run: make test-race
       - name: Build
@@ -53,6 +57,30 @@ jobs:
         with:
           name: coverage
           path: coverage.out
+
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing should not hide the result on the others.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Install make
+        # The Linux and macOS images ship make; the Windows image does not.
+        if: runner.os == 'Windows'
+        run: choco install make --yes --no-progress
+      - name: Build the packaged app
+        # mygo build compiles the app, whose window shows native UI drawn by
+        # Go, and packages it for this platform, proving every platform can
+        # produce an installable artifact. There is no frontend build, so this
+        # needs neither Node nor bun.
+        run: make desktop
 
   lint:
     name: Lint

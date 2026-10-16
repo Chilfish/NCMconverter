@@ -8,6 +8,8 @@
 - `make`：可选，但大多数常用命令都收在 [Makefile](Makefile) 里。
 - `golangci-lint` v2：运行 `make lint` 时需要，版本与 CI 中锁定的保持一致。
 
+桌面应用（`internal/desktop`）不需要额外的工具链：窗口是 MyGo 的原生 UI，用 Go 写成，MyGo CLI 由 [`go.mod`](go.mod) 的 tool 指令提供，以 `go tool mygo` 运行。**不需要 Node 或 bun**。
+
 ## 本地开发
 
 ```sh
@@ -20,6 +22,8 @@ make vet
 make fmt            # gofmt -w .
 make fmt-check      # 只检查，不修改
 make lint           # 需要 golangci-lint v2
+make dev            # go tool mygo dev：开发桌面应用（改 Go 代码自动重建重启）
+make desktop        # go tool mygo build：打包桌面产物
 ```
 
 不想用 `make` 时，直接运行对应的 `go` 命令即可，Makefile 没有做额外的事情。
@@ -72,6 +76,6 @@ feat: embed a lyrics sidecar into converted files
 
 ## 发布
 
-发布由 tag 触发：推一个 `v*` 形式的 tag，GitHub Actions 会调用 [GoReleaser](.goreleaser.yaml) 交叉编译 linux/darwin/windows × amd64/arm64，生成 `tar.gz`（Windows 为 `zip`）与 `checksums.txt` 并上传到 Release。
+发布由 tag 触发：推一个 `v*` 形式的 tag，GitHub Actions 会用 `go tool mygo build` 交叉编译 linux/darwin/windows，产出 macOS `.app`+`dmg`、Windows `exe`+NSIS 安装器、Linux `tar.gz`+`deb` 并上传到 Release（不再产出 `rpm` 与 `checksums.txt`）。
 
 [cc]: https://www.conventionalcommits.org/zh-hans/
