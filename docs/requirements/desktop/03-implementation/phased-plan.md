@@ -6,16 +6,16 @@
 ## 0. 环境准备
 
 ```sh
-go version            # 需 1.27+（引入 mygo 后会要求 1.27.1，以 go.mod 为准）
+go version            # 需 1.27+（引入 mygo 后会要求 1.27.2，以 go.mod 为准）
 bun --version         # 前端与 mygo CLI 的运行时
 ```
 
-依赖：`github.com/egoist/mygo v0.5.1`（纯 Go，无 cgo）；前端 `mygo-runtime`、`mygo-cli`、`typescript`、`vite`（版本与 MyGo 官方模板一致）。
+依赖：`github.com/egoist/mygo v0.5.5`（纯 Go，无 cgo）；前端 `mygo-runtime`、`mygo-cli`、`typescript`、`vite`（版本与 MyGo 官方模板一致）。
 
-**开工前先读**（按 [`../../INDEX.md`](../../INDEX.md) 的导航）：
+**开工前先读**（按 [`../../../INDEX.md`](../../../INDEX.md) 的导航）：
 
-- [`../../engineering/code-style.md`](../../engineering/code-style.md)、[`../../engineering/testing.md`](../../engineering/testing.md)、[`../../engineering/git-workflow.md`](../../engineering/git-workflow.md)
-- [`../../postmortem/README.md`](../../postmortem/README.md)（高频雷区自查）
+- [`../../../engineering/code-style.md`](../../../engineering/code-style.md)、[`../../../engineering/testing.md`](../../../engineering/testing.md)、[`../../../engineering/git-workflow.md`](../../../engineering/git-workflow.md)
+- [`../../../postmortem/README.md`](../../../postmortem/README.md)（高频雷区自查）
 - 本目录的 [编码规范](coding-standards.md) 与 [设计](../02-design/architecture.md)
 
 ---
@@ -121,7 +121,7 @@ bun --version         # 前端与 mygo CLI 的运行时
 
 ### 3.3 依赖
 
-- `go.mod` 新增 `github.com/egoist/mygo v0.5.1`；`go mod tidy` 会把 `go` 指令抬到 `1.27.1`。
+- `go.mod` 新增 `github.com/egoist/mygo v0.5.5`；`go mod tidy` 会把 `go` 指令抬到 `1.27.2`。
 
 ---
 
@@ -188,14 +188,14 @@ PR 描述按 [模板](../../../../.github/PULL_REQUEST_TEMPLATE.md)：做了什�
 
 ## 6. 交付物清单（自查）
 
-- [ ] `internal/app`：`report.go`、`Options.OnFile`、`Scan`、`convert` 返回 `FileResult`、`OnFile` 测试
-- [ ] `internal/desktop`：`service.go`、`app.go`、`service_test.go`
-- [ ] `cmd/ncmconverter`：双模式 `main.go` + `console_{windows,other}.go`
-- [ ] 根配置：`mygo.config.ts`、`package.json`、`tsconfig.json`、`vite.config.ts`、`.gitignore`
-- [ ] `desktop/`：`index.html`、`src/{main.ts,style.css,mygo.ts}`
-- [ ] 构建：`Makefile` 目标、CI desktop job、发布 workflow、删除 `.goreleaser.yaml`
-- [ ] 文档：阶段 4 的 13 项
-- [ ] 门禁全绿 + 双模式冒烟通过
+- [x] `internal/app`：`report.go`、`Options.OnFile`、`Scan`、`convert` 返回 `FileResult`、`OnFile` 测试
+- [x] `internal/desktop`：`service.go`、`app.go`、`service_test.go`
+- [x] `cmd/ncmconverter`：双模式 `main.go` + `console_{windows,other}.go`
+- [x] 根配置：`mygo.config.ts`、`package.json`、`tsconfig.json`、`vite.config.ts`、`.gitignore`
+- [x] `desktop/`：`index.html`、`src/{main.ts,style.css,mygo.ts}`
+- [x] 构建：`Makefile` 目标、CI desktop job、发布 workflow、删除 `.goreleaser.yaml`
+- [x] 文档：阶段 4 的 13 项
+- [x] 门禁全绿 + 双模式冒烟通过
 
 ## 7. 已知取舍与后续（同步进 backlog）
 

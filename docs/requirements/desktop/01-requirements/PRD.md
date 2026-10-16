@@ -126,8 +126,8 @@ NCMconverter 目前只有 `cmd/ncmconverter` 一个批处理 CLI：能并发转�
 
 ## 8. 约束与依赖
 
-- **Go**：版本以 `go.mod` 为准；引入 MyGo 后会被抬到 `1.27.1`（MyGo v0.5.1 要求）。
-- **MyGo `github.com/egoist/mygo` v0.5.1**：桌面框架；纯 Go、无 cgo。
+- **Go**：版本以 `go.mod` 为准；引入 MyGo 后会被抬到 `1.27.2`（MyGo v0.5.5 要求）。
+- **MyGo `github.com/egoist/mygo` v0.5.5**：桌面框架；纯 Go、无 cgo。
 - **前端**：TypeScript + Vite，包管理用 bun（与 MyGo 官方模板一致）。
 - **CLI**：`github.com/urfave/cli/v3`（不变）。
 - **平台**：macOS / Windows / Linux。
@@ -142,7 +142,7 @@ NCMconverter 目前只有 `cmd/ncmconverter` 一个批处理 CLI：能并发转�
 | Windows GUI 子系统导致 CLI 无输出 | CLI 在 Windows 上「哑掉」 | `AttachConsole` 垫片（FR-1.3），并列为验收项 AC-2 |
 | 前端嵌入依赖 `mygo build` 的 overlay 契约 | 普通 `go build` 的产物桌面模式打不开页面 | 文档明确「打包/开发用 `mygo build`」；发布链路只用 `mygo build` |
 | Linux 桌面包把 GTK/WebKitGTK 变成安装依赖 | CLI-only 用户被牵连装 GUI 库 | 在 README/features 说明；如不可接受，退回「两个二进制」方案（见 design-decisions 备选） |
-| MyGo 上游 API 变动 | 编译失败 | 版本固定 v0.5.1；升级按 `mygo-maintenance` 流程走 |
+| MyGo 上游 API 变动 | 编译失败 | 版本固定 v0.5.5；升级按 `mygo-maintenance` 流程走 |
 | 拖拽路径在部分平台拿不到 | 拖拽不可用 | 保留对话框入口为主路径 |
 | 发布链路从 GoReleaser 切到 `mygo build` | 产物形状变化（无 rpm/checksums） | 记入 CHANGELOG 与 backlog 跟进 |
 

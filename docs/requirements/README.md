@@ -24,7 +24,7 @@ docs/requirements/<feature>/
 
 | 功能                                   | 目录                             | 状态                  |
 | -------------------------------------- | -------------------------------- | --------------------- |
-| 桌面应用（单二进制双模式，MyGo）        | [`desktop/`](desktop/)            | 已定稿，待实现        |
+| 桌面应用（单二进制双模式，MyGo）        | [`desktop/`](desktop/)            | 已实现（领域文档：[`../features/desktop/desktop-app.md`](../features/desktop/desktop-app.md)） |
 
 ### [`desktop/`](desktop/) 目录内容
 

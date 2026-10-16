@@ -9,7 +9,7 @@
 | -------- | ---------------------------------------------------------------- |
 | 语言     | Go（版本以 [`../../go.mod`](../../go.mod) 为准）                  |
 | CLI      | `github.com/urfave/cli/v3`                                       |
-| 桌面     | `github.com/egoist/mygo` v0.5.1（纯 Go、无 cgo）+ TypeScript/Vite 前端 |
+| 桌面     | `github.com/egoist/mygo` v0.5.5（纯 Go、无 cgo）+ TypeScript/Vite 前端 |
 | 并发     | `golang.org/x/sync/errgroup`                                     |
 | 编码     | `golang.org/x/text`（GBK）                                       |
 | mp3 标签 | `github.com/bogem/id3v2`                                         |
@@ -96,7 +96,7 @@
 ## ADR-010: 桌面应用与 CLI 共用一个二进制（MyGo）
 
 - **日期**: 2026-10-15
-- **决策**: 用 [MyGo](https://github.com/egoist/mygo)（`github.com/egoist/mygo` v0.5.1，纯 Go、无 cgo）为项目加一个**桌面入口**，它与原 CLI **共用同一个可执行文件**：无参数启动即打开窗口，带参数即当前 CLI。桌面与 CLI 共用 `internal/app` 的编排，桌面通过新增的 `Options.OnFile` 回调获取逐文件进度；发布链路改由 `mygo build` 驱动（取代 [ADR-008](#adr-008-goreleaser--nfpm-发布平台矩阵已被-adr-010-取代)）。
+- **决策**: 用 [MyGo](https://github.com/egoist/mygo)（`github.com/egoist/mygo` v0.5.5，纯 Go、无 cgo）为项目加一个**桌面入口**，它与原 CLI **共用同一个可执行文件**：无参数启动即打开窗口，带参数即当前 CLI。桌面与 CLI 共用 `internal/app` 的编排，桌面通过新增的 `Options.OnFile` 回调获取逐文件进度；发布链路改由 `mygo build` 驱动（取代 [ADR-008](#adr-008-goreleaser--nfpm-发布平台矩阵已被-adr-010-取代)）。
 - **背景**:
   - 项目此前只有批处理 CLI，普通用户门槛高；`backlog.md` 曾把 GUI 裁为「不接」，本次明确反转（定位扩展为「面向普通用户的转换器」，且不产生第二套转换逻辑）。
   - 用户要求「同一个执行文件，既能打开为 desktop，也能作为 shell 调用」。

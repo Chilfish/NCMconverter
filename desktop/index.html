@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NCMconverter</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <main>
+      <header class="app-header">
+        <h1>NCMconverter</h1>
+        <p class="muted" id="build"></p>
+      </header>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>转换队列</h2>
+          <div class="actions">
+            <button type="button" id="add-files">添加文件</button>
+            <button type="button" id="add-dir">添加文件夹</button>
+            <button type="button" id="clear" class="ghost">清空</button>
+          </div>
+        </div>
+        <ul id="queue" class="queue" hidden></ul>
+        <p id="queue-empty" class="muted empty">
+          把 <code>.ncm</code> 文件或文件夹拖进窗口，或点上面的按钮添加。
+        </p>
+        <p id="stats" class="muted stats"></p>
+      </section>
+
+      <section class="panel">
+        <h2>选项</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="output">输出目录</label>
+            <div class="row">
+              <input id="output" type="text" placeholder="留空则与源文件同目录" autocomplete="off" />
+              <button type="button" id="pick-output" class="ghost">选择…</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="template">命名模板</label>
+            <input id="template" type="text" placeholder="{artist} - {title}" autocomplete="off" />
+            <small class="muted">
+              占位符：<code>{name}</code> <code>{title}</code> <code>{artist}</code>
+              <code>{album}</code> <code>{id}</code> <code>{format}</code>
+            </small>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="depth">目录层级 depth</label>
+              <input id="depth" type="number" min="0" step="1" value="0" />
+            </div>
+            <div class="field">
+              <label for="threads">并发数 threads</label>
+              <input id="threads" type="number" min="1" step="1" value="10" />
+            </div>
+          </div>
+          <div class="checks">
+            <label><input id="tag" type="checkbox" checked /> 写入标签与封面</label>
+            <label><input id="skip-existing" type="checkbox" /> 跳过已存在的文件</label>
+            <label><input id="dry-run" type="checkbox" /> 试运行（只列出，不写入）</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>转换</h2>
+          <div class="actions">
+            <button type="button" id="run" class="primary">开始转换</button>
+            <button type="button" id="cancel" class="ghost" disabled>取消</button>
+            <button type="button" id="open-output" class="ghost" disabled>打开输出目录</button>
+          </div>
+        </div>
+        <progress id="progress" value="0" max="1"></progress>
+        <p id="summary" class="muted">尚未开始。</p>
+        <ul id="log" class="log"></ul>
+      </section>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

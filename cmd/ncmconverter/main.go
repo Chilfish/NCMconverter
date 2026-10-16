@@ -1,5 +1,9 @@
 // Command ncmconverter converts NetEase Cloud Music (.ncm) files into mp3 or
 // flac files.
+//
+// Started without arguments it opens a desktop window; started with arguments
+// it is the command line tool, unchanged. Both share internal/app, so the
+// conversion itself has one implementation.
 package main
 
 import (
@@ -11,6 +15,7 @@ import (
 	"os/signal"
 
 	"github.com/chilfish/ncmconverter/internal/app"
+	"github.com/chilfish/ncmconverter/internal/desktop"
 	"github.com/urfave/cli/v3"
 )
 
@@ -24,6 +29,27 @@ var (
 )
 
 func main() {
+	// Arguments mean the command line tool; no arguments mean the desktop app.
+	// mygo generate builds and runs this binary with MYGO_GENERATE set to write
+	// the TypeScript client and return, which must take the desktop branch
+	// rather than be mistaken for a command line call.
+	if len(os.Args) > 1 && os.Getenv("MYGO_GENERATE") == "" {
+		// A windowsgui build has no console of its own, so the shim has to
+		// attach one before the logger captures os.Stderr.
+		attachConsole()
+		runCLI()
+		return
+	}
+	if err := desktop.Run(); err != nil {
+		slog.Error("ncmconverter failed", "err", err)
+		os.Exit(1)
+	}
+}
+
+// runCLI is the command line tool: the behaviour, flags, defaults, log output
+// and exit codes are exactly what the binary did before the desktop app
+// existed.
+func runCLI() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 

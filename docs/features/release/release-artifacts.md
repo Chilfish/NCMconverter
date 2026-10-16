@@ -1,6 +1,6 @@
 # 构建与发布产物
 
-> 子系统：构建/发布｜ 关键文件：[`Makefile`](../../../Makefile)、[`.goreleaser.yaml`](../../../.goreleaser.yaml)、[`.github/workflows/`](../../../.github/workflows/)
+> 子系统：构建/发布｜ 关键文件：[`Makefile`](../../../Makefile)、[`mygo.config.ts`](../../../mygo.config.ts)、[`package.json`](../../../package.json)、[`.github/workflows/`](../../../.github/workflows/)
 
 ## 1. 本地构建（Makefile）
 
@@ -23,35 +23,46 @@ build:
 
 其余目标：`test`、`test-race`、`coverage`（`-covermode=atomic -coverprofile=coverage.out`）、`vet`、`fmt`、`fmt-check`、`lint`（`golangci-lint run`）、`clean`（只删 `bin/` 与 `coverage.out`，**绝不删音频或容器**）。CI 复用这些目标，避免 workflow 与 Makefile 两处维护。
 
-## 2. 发布产物（GoReleaser）
+桌面与前端另有三个目标，**需要 bun，与上面的 Go 门禁刻意分离**：`make desktop`（`bun install --frozen-lockfile && bun run build`，即 `mygo build`）、`make generate`（重生成 TypeScript 客户端）、`make typecheck`（`tsc --noEmit`）。
 
-`.goreleaser.yaml`（`version: 2`）：
+## 2. 发布产物（`mygo build`）
 
-- **平台**：`linux`/`darwin`/`windows` × `amd64`/`arm64`，`CGO_ENABLED=0`，`-trimpath`。
-- **ldflags**：`-s -w` 加三个 `-X`（与 Makefile 一致，取 `{{.Version}}`/`{{.Commit}}`/`{{.Date}}`）。
-- **归档**：默认 `tar.gz`；**Windows 用 `zip`**（`format_overrides`）。归档附 `LICENSE` 与 `README.md`。
-- **安装包（nfpm）**：Linux `amd64`/`arm64` 生成 `deb` 与 `rpm`，二进制装到 `/usr/bin`，文档装到 `/usr/share/doc/ncmconverter/`。
-- **校验和**：`checksums.txt`。
-- **快照版本**：`{{ incpatch .Version }}-next`。
-- **发布说明**：正文是按 conventional-commit 类型分组的提交列表（Features / Bug fixes / Others），footer 回链 `CHANGELOG.md`；**过滤掉** `chore`/`ci`/`docs`/`test`/`build`/`refactor` 与任何 `(release)` 提交（包括带 scope 的形式）。
+桌面应用与 CLI 共用一个二进制，产物必须**内嵌前端并给 Windows 设置 GUI 子系统**（普通 `go build` 做不到，差别见 [构建契约](../desktop/desktop-app.md#51-make-build-与打包产物的差别)）。因此发布链路由 `mygo build` 驱动，取代了此前的 GoReleaser + nfpm（[ADR-010](../../planning/architecture.md)、[DD-4](../../requirements/desktop/05-review/design-decisions.md)）；`.goreleaser.yaml` 已删除。
 
-> 用户可读的变更说明以 `CHANGELOG.md` 为准，Release 正文只是提交清单。
+配置在 [`mygo.config.ts`](../../../mygo.config.ts)：`main: "./cmd/ncmconverter"`、`identifier: "dev.chilfish.ncmconverter"`、`frontendDist: "desktop/dist"`、`bindings: "desktop/src/mygo.ts"`、`out: "dist"`。`mygo build`（`bun run build`）先跑前端构建，再用 `go build -overlay` 把 `desktop/dist` 注入主包，最后按目标打包。
+
+平台矩阵与产物（[`.github/workflows/release.yml`](../../../.github/workflows/release.yml) 的 `build` job）：
+
+| 目标 | runner | 平台 | 产物 |
+| --- | --- | --- | --- |
+| macOS | `macos-latest` | `darwin/universal` | `.app` + `dmg` |
+| Windows | `ubuntu-latest` | `windows/amd64,windows/arm64` | `exe` + NSIS 安装器（`*Setup*.exe`） |
+| Linux | `ubuntu-latest` | `linux/amd64,linux/arm64` | `tar.gz`（含 `install.sh`）+ `deb` |
+
+- MyGo 无 cgo，任意机器都能交叉编译任意平台；只有 macOS 的 `.app`、签名与磁盘镜像需要 Mac，Linux 目标上的 NSIS 由 `apt-get install nsis` 提供。
+- **签名**：`mygo.config.ts` 的 `macos.signingIdentity` / `macos.notarize` / `windows.certificate` 由 secrets 注入；缺失时 macOS 走 ad-hoc（`-sign -`）签名、Windows 不签名，构建不被阻塞。
+- **不再产出的东西**：`rpm` 与 `checksums.txt`。GoReleaser/nfpm 退役后两者一并消失，恢复办法（发布 job 里补 `sha256sum` 与 rpm 步骤）记入 [backlog](../../planning/backlog.md)。
+- 产物落在 `dist/<平台>/` 下（`out: "dist"`），由发布 job 用 `gh release upload` 挂到该 tag 的 Release。
+
+> Linux 的 `deb` 会声明依赖 GTK/WebKitGTK（仅桌面模式需要）；CLI 用户运行不受影响，但会被牵连安装。用户可读的变更说明仍以 [`CHANGELOG.md`](../../../CHANGELOG.md) 为准。
 
 ## 3. CI / 发布工作流
 
 - **`.github/workflows/ci.yml`**（push `main` + PR）：
   - `test` job：三平台矩阵（`ubuntu`/`macos`/`windows`，`fail-fast: false`），Go 版本取自 `go.mod`；Windows 用 `choco install make` 补装；Linux 跑 `make fmt-check`，全部跑 `make vet`、`make test-race`、`make build`。
   - `coverage` job：`make coverage` 后上传 `coverage.out` artifact。
+  - `desktop` job：三平台矩阵，`setup-bun` 后 `bun install --frozen-lockfile` → `make typecheck` →（仅 Linux）`make generate` 后 `git diff --exit-code -- desktop/src/mygo.ts` 校验客户端与 Go 同步 → `make desktop`（`mygo build`）证明每个平台都能出包。
   - `lint` job：走 `golangci-lint-action`，**锁定 `version: v2.14.0`**（新版本不能自行改红绿），本地跑的 golangci-lint 需同步该版本。
-- **`.github/workflows/release.yml`**（推 `v*` tag）：`fetch-depth: 0` 取全历史 → `goreleaser release --clean`，`GITHUB_TOKEN` 来自 secrets。
+- **`.github/workflows/release.yml`**（推 `v*` tag）：先由 `draft` job 用 `gh release create --draft --verify-tag` 建一个草稿 Release，再由 `build` job 的三平台矩阵各自 `bun run build -- -platform …`（`mygo build`），最后用 `gh release upload --clobber` 把 `dist/*/*.{dmg,Setup*.exe,deb,tar.gz}` 挂上去；`GITHUB_TOKEN` 来自 workflow 内的 `github.token`。重跑失败的 job 会把文件补进同一个草稿。
 - **`.github/dependabot.yml`**：`gomod` 与 `github-actions` 各自每周，且都用 `groups` 合并成一个 PR。
 
 ## 4. 发布流程
 
-见 [`engineering/git-workflow.md`](../../engineering/git-workflow.md) 与 [`engineering/release-checklist.md`](../../engineering/release-checklist.md)：更新 `CHANGELOG.md` → 本地过门禁 → 快照试产 → 打 `v*` tag → GitHub Actions 发布。
+见 [`engineering/git-workflow.md`](../../engineering/git-workflow.md) 与 [`engineering/release-checklist.md`](../../engineering/release-checklist.md)：更新 `CHANGELOG.md` → 本地过门禁 → `mygo build` 试产（`bun run build`）→ 打 `v*` tag → GitHub Actions 发布。
 
 ## 相关文档
 
 - [`engineering/release-checklist.md`](../../engineering/release-checklist.md)
 - [`engineering/git-workflow.md`](../../engineering/git-workflow.md)
-- [`../CHANGELOG.md`](../../../CHANGELOG.md)
+- [`features/desktop/desktop-app.md`](../desktop/desktop-app.md) —— 构建契约与平台差异
+- [`CHANGELOG.md`](../../../CHANGELOG.md)

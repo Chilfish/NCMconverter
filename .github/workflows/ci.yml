@@ -54,6 +54,36 @@ jobs:
           name: coverage
           path: coverage.out
 
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing should not hide the result on the others.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: oven-sh/setup-bun@v2
+      - name: Install the frontend dependencies
+        run: bun install --frozen-lockfile
+      - name: Check the page against the generated client
+        run: make typecheck
+      - name: Check the generated client is in sync
+        # Making the client is deterministic, so a diff means someone edited
+        # the Go bindings without regenerating it. One platform is enough.
+        if: runner.os == 'Linux'
+        run: |
+          make generate
+          git diff --exit-code -- desktop/src/mygo.ts
+      - name: Build the packaged app
+        # mygo build embeds the frontend and packages the app for this
+        # platform, proving every platform can produce an installable artifact.
+        run: make desktop
+
   lint:
     name: Lint
     runs-on: ubuntu-latest

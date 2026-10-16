@@ -67,6 +67,38 @@ ncmconverter --tag=false song.ncm
 
 单个文件转换失败只会被记录并跳过，不会中断整批任务；只要有文件失败，进程最终仍以非零状态退出。
 
+## 桌面应用
+
+同一个可执行文件既是命令行工具，也是桌面应用：
+
+```sh
+ncmconverter [options] <files/dirs>   # 带参数：命令行（行为与上文一致）
+ncmconverter                          # 无参数：打开桌面窗口
+```
+
+窗口里可以添加文件/文件夹，或直接把 `.ncm` 拖进去；运行时会实时显示每个文件的「已转换 / 已跳过 / 失败」并给出汇总，可随时「取消」或「打开输出目录」。界面里能设置上面 CLI 的全部选项（输出目录、命名模板、`depth`、`threads`、写标签、跳过已存在、试运行）。桌面与命令行**共用同一套转换逻辑**，因此 CLI 的参数名、默认值、日志与退出码完全不受影响。
+
+### 开发与打包
+
+桌面与前端需要 [bun](https://bun.sh/) 与 [MyGo](https://github.com/egoist/mygo)：
+
+```sh
+bun install
+bun run dev          # mygo dev：热更新的开发应用
+bun run generate     # 从 Go 绑定生成 desktop/src/mygo.ts
+bun run build        # mygo build：内嵌前端并打包发布产物（等价于 make desktop）
+```
+
+`make build` 只是普通的 `go build`，**不会内嵌前端**——它的二进制用于命令行，桌面模式打不开页面；桌面开发与打包请走 `bun run dev` / `bun run build`。打包产物：macOS 出 `.app` 与 `dmg`，Windows 出 `exe` 与 NSIS 安装器，Linux 出 `tar.gz`（含 `install.sh`）与 `deb`。
+
+### 平台要求
+
+- **Windows**：桌面模式依赖系统自带的 WebView2 Runtime。
+- **Linux**：**桌面模式需要 GTK 与 WebKitGTK**（打包出的 `deb` 会声明该依赖）；命令行模式不需要图形库，服务器/CI/Docker 上直接用 CLI 是安全的。
+- **macOS**：使用系统 WebKit。
+
+更多细节（目录布局、双模式入口、绑定 API、构建契约）见 [`docs/features/desktop/desktop-app.md`](docs/features/desktop/desktop-app.md)；需求、设计与测试方案见 [`docs/requirements/desktop/`](docs/requirements/desktop/)。
+
 ## 开发
 
 ```sh
@@ -76,6 +108,8 @@ make coverage      # 写入 coverage.out
 make vet
 make fmt-check
 make lint          # 需要 golangci-lint v2
+make desktop       # mygo build：打包桌面产物（需要 bun）
+make typecheck     # 用生成的客户端检查前端类型（需要 bun）
 ```
 
 ### 测试
@@ -88,8 +122,10 @@ make lint          # 需要 golangci-lint v2
 
 | 路径 | 内容 |
 | --- | --- |
-| `cmd/ncmconverter` | 命令行入口。 |
+| `cmd/ncmconverter` | 命令行与桌面入口（双模式）。 |
 | `internal/app` | 编排：转换哪些文件、并发多少。 |
+| `internal/desktop` | 桌面绑定服务与 MyGo 应用装配。 |
+| `desktop/` | 桌面应用的 web 前端（TypeScript + Vite）。 |
 | `internal/ncm` | 容器解析。 |
 | `internal/converter` | 解密与元数据解码。 |
 | `internal/tag` | 向 mp3 与 flac 写入标签。 |

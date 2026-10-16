@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- 桌面应用（单二进制双模式）：同一个 `ncmconverter` 无参数启动即打开窗口，带参数仍是原来的命令行工具。窗口支持添加文件/文件夹、拖拽入队、逐文件进度（已转换/已跳过/失败）、取消与「打开输出目录」，并可设置全部 CLI 选项（输出目录、命名模板、`depth`、`threads`、写标签、跳过已存在、试运行）。基于 [MyGo](https://github.com/egoist/mygo)（纯 Go、无 cgo），与 CLI 共用同一套转换逻辑。
+- Windows 控制台垫片：GUI 子系统构建从终端调用时仍能正常输出（`AttachConsole`）。
+- `internal/app` 增加逐文件回调 `Options.OnFile` 并导出 `Scan`，供桌面展示进度与预览工作量；新增 `internal/desktop` 绑定服务，前端类型由 `mygo generate` 生成并提交。
+
+### Changed
+
+- 发布链路从 GoReleaser/nfpm 改为 `mygo build`：删除 `.goreleaser.yaml`，产物变为 macOS `.app`+`dmg`、Windows `exe`+NSIS 安装器、Linux `tar.gz`（含 `install.sh`）+`deb`。**不再产出 `rpm` 与 `checksums.txt`**（恢复办法见 backlog 跟进项）。
+- `make build` 不再等同发布产物：它是普通 `go build`，**不内嵌前端**，桌面模式打不开页面；桌面开发与打包改走 `mygo dev` / `mygo build`（`make desktop`）。
+- CI 增加三平台桌面对应 job（`bun install` + `make typecheck` + 校验生成的 `desktop/src/mygo.ts` + `make desktop`）；Go 门禁仍不依赖 bun。
+- Linux 的 `deb` 会声明依赖 GTK/WebKitGTK（仅桌面模式需要）；命令行模式不受影响。
+
 ## [0.1.0] - 2026-09-27
 
 首个正式版本：把网易云音乐的 `.ncm` 容器转换成可播放的 mp3 或 flac，并保留其中的元数据、封面与歌词。

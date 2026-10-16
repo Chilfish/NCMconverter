@@ -96,4 +96,4 @@ flowchart LR
 
 ## 8. 构建与发布
 
-本地用 `Makefile` 把版本信息经 `-ldflags` 注入二进制；发布由 `v*` tag 触发 GoReleaser，交叉编译三平台并生成 deb/rpm 与校验和。详见 [`../features/release/release-artifacts.md`](../features/release/release-artifacts.md)。
+本地用 `Makefile` 把版本信息经 `-ldflags` 注入二进制；发布由 `v*` tag 触发的 `mygo build` 交叉编译三平台，产出 macOS `.app`+`dmg`、Windows `exe`+NSIS 安装器、Linux `tar.gz`+`deb`（不含 rpm 与 `checksums.txt`）。详见 [`../features/release/release-artifacts.md`](../features/release/release-artifacts.md)。

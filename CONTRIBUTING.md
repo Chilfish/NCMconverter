@@ -72,6 +72,6 @@ feat: embed a lyrics sidecar into converted files
 
 ## 发布
 
-发布由 tag 触发：推一个 `v*` 形式的 tag，GitHub Actions 会调用 [GoReleaser](.goreleaser.yaml) 交叉编译 linux/darwin/windows × amd64/arm64，生成 `tar.gz`（Windows 为 `zip`）与 `checksums.txt` 并上传到 Release。
+发布由 tag 触发：推一个 `v*` 形式的 tag，GitHub Actions 会用 `mygo build`（`bun run build`）交叉编译 linux/darwin/windows，产出 macOS `.app`+`dmg`、Windows `exe`+NSIS 安装器、Linux `tar.gz`+`deb` 并上传到 Release（不再产出 `rpm` 与 `checksums.txt`）。
 
 [cc]: https://www.conventionalcommits.org/zh-hans/

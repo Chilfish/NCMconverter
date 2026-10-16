@@ -306,7 +306,7 @@ export default defineConfig({
 
 ## 9. 依赖变化
 
-- `go.mod`：新增 `github.com/egoist/mygo v0.5.1`（连带 `purego`、`x/image`、`x/net`、`go-text/typesetting` 等），`go` 指令被 `go mod tidy` 抬到 `1.27.1`。
+- `go.mod`：新增 `github.com/egoist/mygo v0.5.5`（连带 `purego`、`x/image`、`x/net`、`go-text/typesetting` 等），`go` 指令被 `go mod tidy` 抬到 `1.27.2`。
 - 根 `package.json`：`mygo-runtime`（运行时）、`mygo-cli`/`typescript`/`vite`（开发）。版本与 MyGo 官方模板对齐。
 
 ## 10. 与既有规范的关系

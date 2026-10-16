@@ -7,7 +7,7 @@
 | 层                    | 范围                                                          | 代表文件                                             |
 | --------------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
 | **单元**              | 纯函数与单包逻辑（AES、`Int64`、MIME、歌词解码、命名/深度）    | `aes_test.go`、`meta_test.go`、`mime_test.go`、`lyrics_test.go`、`app_test.go` |
-| **合成容器端到端**    | 用 `internal/ncmtest` 造容器/音频，真实跑一遍转换并逐字节校验  | `converter_test.go`、`app/integration_test.go`、`mp3_test.go`、`flac_test.go` |
+| **合成容器端到端**    | 用 `internal/ncmtest` 造容器/音频，真实跑一遍转换并逐字节校验  | `converter_test.go`、`app/integration_test.go`、`app/report_test.go`、`desktop/service_test.go`、`mp3_test.go`、`flac_test.go` |
 | **真实 fixture 端到端** | 用 `testdata/` 的真实 `.ncm` 转换并断言标签/歌词/音频完整      | `app/sample_test.go`                                 |
 
 ## 2. `ncmtest` 的设计哲学（关键）
@@ -117,7 +117,22 @@ make lint          # golangci-lint v2
 | mp3/flac 端到端音频与标签              | `integration_test.go::TestRunConverts*EndToEnd`             |
 | 歌词侧车嵌入 / 超大歌词                | `integration_test.go::TestRunEmbedsTheLyricsSidecar`、`…EmbedsLargeLyrics` |
 | 失败不中断 / 取消 / 无临时残留         | `integration_test.go::TestRunContinuesAfterAFailure`、`…HonoursCancellation`、`…LeavesNoTemporaryFiles` |
+| 逐文件回调：试运行/成功/跳过/失败       | `report_test.go::TestRunReports*`                            |
+| 无回调时行为不变                        | `report_test.go::TestRunWithoutACallbackStillSucceeds`      |
 | 真实 fixture 音频完整 + 标签           | `sample_test.go::TestRunConvertsTheRepositorySample`、`TestRunTagsTheConvertedFileFromTheRepositorySample` |
+
+### `internal/desktop`（`service_test.go`）
+
+服务测试直接调 `Converter.Run`，用**零值** `&mygo.Channel[Report]{}` 作通道参数（`Send` 返回 `ErrChannelClosed`，服务端忽略该错误），因此**不需要窗口**即可跑通整条链路。
+
+| 行为                                   | 测试（文件）                                                |
+| -------------------------------------- | ----------------------------------------------------------- |
+| 三种结果的计数（转换/跳过/失败）        | `service_test.go::TestRunCountsEveryOutcome`                 |
+| 逐文件失败不升级为聚合错误              | `service_test.go::TestRunReportsFileFailuresWithoutAnError`  |
+| 单飞：运行中再次 `Run` 报错            | `service_test.go::TestRunRejectsASecondRun`                  |
+| 取消归一为 `Canceled`                   | `service_test.go::TestRunNormalizesCancellation`             |
+| `Scan` 与 `Run` 的集合一致（depth 语义）| `service_test.go::TestScanMatchesWhatARunHandles`            |
+| threads 校验透传                        | `service_test.go::TestRunRejectsNonPositiveThreads`          |
 
 ## 7. 真实 fixture 的处理
 

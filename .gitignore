@@ -1,12 +1,18 @@
 # Build output
 bin/
 dist/
+build/
 /ncmconverter
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
+# Desktop app tooling and artifacts
+node_modules/
+.mygo/
+cmd/ncmconverter/mygo_windows_*.syso
 
 # Container inputs and converted audio
 *.ncm
@@ -29,3 +35,4 @@ dist/
 
 # Local tooling settings
 .commandcode/settings.json
+*.mp3

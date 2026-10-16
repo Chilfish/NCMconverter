@@ -3,7 +3,7 @@
 > 关联：[architecture.md](architecture.md)｜[../04-testing/test-plan.md](../04-testing/test-plan.md)
 > 契约来源：Go 代码里的 `internal/desktop`。**TS 客户端由 `mygo generate` 生成，不手写**；本文档描述生成结果应当长什么样，作为评审与测试的对照。
 
-## 1. 生成规则（MyGo v0.5.1）
+## 1. 生成规则（MyGo v0.5.5）
 
 - 服务名 = Go 类型名（`Converter`）；前端 `Converter.info()` 调用 `Converter.Info`。
 - 方法名 = 导出方法的 lowerCamelCase（`PickFiles` → `pickFiles`、`OpenPath` → `openPath`）。

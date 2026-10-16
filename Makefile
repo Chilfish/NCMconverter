@@ -13,6 +13,7 @@ DATE ?= $(shell git log -1 --format=%cI || echo unknown)
 LDFLAGS := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
 .PHONY: all build install run test test-race coverage vet fmt fmt-check lint clean
+.PHONY: desktop generate typecheck
 
 all: build
 
@@ -60,3 +61,20 @@ lint:
 clean:
 	-rm -rf bin
 	-rm -f coverage.out
+
+# The desktop targets below need bun and the mygo CLI. They are kept apart from
+# the Go gates above, which stay free of any Node dependency.
+
+# desktop: build the packaged apps, frontend embedded, with mygo build
+desktop:
+	bun install --frozen-lockfile
+	bun run build
+
+# generate: write the TypeScript client from the Go bindings
+generate:
+	bun run generate
+
+# typecheck: check the page against the generated client
+typecheck:
+	bun install --frozen-lockfile
+	bun run typecheck

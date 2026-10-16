@@ -8,23 +8,68 @@ permissions:
   contents: write
 
 jobs:
-  goreleaser:
-    name: Release
+  draft:
+    name: Draft the release
     runs-on: ubuntu-latest
     steps:
+      - name: Create the draft release
+        # The draft exists before the builds start, so every platform uploads to
+        # one release. Running the workflow again keeps it and replaces files.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --draft --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: draft
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing should not hide the result on the others; re-run
+      # the failed job and it uploads to the same draft.
+      fail-fast: false
+      matrix:
+        include:
+          # MyGo needs no cgo, so any machine builds any platform; only the
+          # macOS app bundle, its signature and the disk image need a Mac.
+          - { name: macOS, os: macos-latest, platform: "darwin/universal" }
+          - { name: Windows, os: ubuntu-latest, platform: "windows/amd64,windows/arm64" }
+          - { name: Linux, os: ubuntu-latest, platform: "linux/amd64,linux/arm64" }
+    steps:
       - uses: actions/checkout@v7
-        with:
-          # GoReleaser builds the changelog from the tags and commits, so the
-          # full history has to be present.
-          fetch-depth: 0
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
+      - uses: oven-sh/setup-bun@v2
+      - name: Install NSIS, for the Windows installers
+        if: matrix.name == 'Windows'
+        run: sudo apt-get update && sudo apt-get install -y nsis
+      - name: Install the frontend dependencies
+        run: bun install --frozen-lockfile
+      - name: Build the packaged apps
+        # mygo build runs the frontend build, embeds it, links the app's name
+        # and version in and packages each target. macOS is signed ad hoc and
+        # Windows is left unsigned, so a build without signing secrets works;
+        # see mygo.config.ts to sign and notarize a real release.
+        run: bun run build -- -platform "${{ matrix.platform }}"
+      - name: Upload the artifacts to the release
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(
+            dist/*/*.dmg
+            dist/*/*Setup*.exe
+            dist/*/*.deb
+            dist/*/*.tar.gz
+          )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "no artifacts were produced" >&2
+            exit 1
+          fi
+          gh release upload "$GITHUB_REF_NAME" "${files[@]}" \
+            --repo "$GITHUB_REPOSITORY" --clobber
