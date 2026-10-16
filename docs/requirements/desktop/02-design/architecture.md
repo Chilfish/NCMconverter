@@ -89,7 +89,8 @@ package main
 
 // attachConsole attaches the process to the console it was launched from, so
 // a windowsgui build still prints when run from a terminal. It does nothing
-// when there is no console to attach to (a double click, a service).
+// when there is no console to attach to (a double click, a service), and
+// leaves a stream the caller redirected alone.
 func attachConsole() {
 	kernel32 := syscall.NewLazyDLL("kernel32.dll")
 	attach := kernel32.NewProc("AttachConsole")
@@ -97,11 +98,20 @@ func attachConsole() {
 	if ok, _, _ := attach.Call(attachParentProcess); ok == 0 {
 		return
 	}
-	if out, err := os.OpenFile("CONOUT$", os.O_WRONLY, 0); err == nil {
-		os.Stdout, os.Stderr = out, out
+	useConsole(&os.Stdout, "CONOUT$", os.O_WRONLY)
+	useConsole(&os.Stderr, "CONOUT$", os.O_WRONLY)
+	useConsole(&os.Stdin, "CONIN$", os.O_RDONLY)
+}
+
+// useConsole points a stream at the console device when the process has no
+// handle of its own for it: GetFileType returns FILE_TYPE_UNKNOWN (0) for the
+// invalid handle a GUI subsystem build starts with.
+func useConsole(stream **os.File, name string, flag int) {
+	if hasHandle(*stream) {
+		return
 	}
-	if in, err := os.OpenFile("CONIN$", os.O_RDONLY, 0); err == nil {
-		os.Stdin = in
+	if file, err := os.OpenFile(name, flag, 0); err == nil {
+		*stream = file
 	}
 }
 ```
@@ -110,6 +120,7 @@ func attachConsole() {
 
 - 只用标准库 `syscall`（与 MyGo 一致地避开 cgo），**不新增依赖**。
 - 必须在建立 `slog` handler **之前**调用，因为 handler 在创建时就捕获了 `os.Stderr`。
+- **只接管没有自己的句柄的流**：GUI 子系统构建启动时标准句柄是无效的（`GetFileType` 返回 `FILE_TYPE_UNKNOWN`），才需要指向 `CONOUT$`/`CONIN$`；调用方重定向过的流（`ncmconverter --dry-run > list.txt`）保持原样，否则输出会被悄悄丢进一个用户看不见的控制台。
 - Linux/macOS 无此问题，`console_other.go` 提供空实现。
 
 ## 4. `internal/app`：让第二个调用方接入（行为不变）

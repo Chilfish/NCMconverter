@@ -61,17 +61,27 @@ func attachConsole() {
 	if ok, _, _ := attach.Call(attachParentProcess); ok == 0 {
 		return
 	}
-	if out, err := os.OpenFile("CONOUT$", os.O_WRONLY, 0); err == nil {
-		os.Stdout, os.Stderr = out, out
+	useConsole(&os.Stdout, "CONOUT$", os.O_WRONLY)
+	useConsole(&os.Stderr, "CONOUT$", os.O_WRONLY)
+	useConsole(&os.Stdin, "CONIN$", os.O_RDONLY)
+}
+
+// useConsole points a stream at the console device when the process has no
+// handle of its own for it: GetFileType returns FILE_TYPE_UNKNOWN (0) for the
+// invalid handle a GUI subsystem build starts with.
+func useConsole(stream **os.File, name string, flag int) {
+	if hasHandle(*stream) {
+		return
 	}
-	if in, err := os.OpenFile("CONIN$", os.O_RDONLY, 0); err == nil {
-		os.Stdin = in
+	if file, err := os.OpenFile(name, flag, 0); err == nil {
+		*stream = file
 	}
 }
 ```
 
 - 只用标准库 `syscall`，**不引入 cgo 或新依赖**。
 - 必须在建立 `slog` handler **之前**调用，因为 handler 在创建时就捕获了 `os.Stderr`。
+- **只接管没有自己的句柄的流**：调用方重定向过的流（`ncmconverter --dry-run > list.txt`）保持原样，输出照旧写进文件，而不是被无条件改成 `CONOUT$` 而丢掉。
 - `AttachConsole` 失败（双击、服务）时静默返回。Linux/macOS 的二进制保留启动时的控制台，[`console_other.go`](../../../cmd/ncmconverter/console_other.go) 提供 `//go:build !windows` 的空实现。
 
 ## 3. `internal/desktop`：原生应用
